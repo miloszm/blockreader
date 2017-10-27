@@ -1,0 +1,22 @@
+@import _root_.model.Block
+
+@(message: String, block: Block)
+
+@main("Welcome to Play") {
+ <table>
+  <thead>
+   <tr>
+    <th>fee</th>
+    <th>height</th>
+    <th>number of transactions</th>
+   </tr>
+  </thead>
+  <tbody>
+   <tr>
+    <td>@block.fee</td>
+    <td>@block.height</td>
+    <td>@block.n_tx</td>
+   </tr>
+  </tbody>
+ </table>
+}
