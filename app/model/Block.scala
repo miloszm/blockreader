@@ -58,5 +58,6 @@ case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]){
     val (lower, upper) = fees.sortWith(_<_).splitAt(feesSize / 2)
     if (feesSize % 2 == 0) (lower.last + upper.head) / 2 else upper.head
   }
+  def sumOutputs = tx.map(_.sumOutputs).sum
 }
 
