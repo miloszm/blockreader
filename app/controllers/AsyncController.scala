@@ -3,6 +3,7 @@ package controllers
 import akka.actor.ActorSystem
 import javax.inject._
 
+import cats.data.Validated.{Invalid, Valid}
 import connectors.BlockchainConnector
 import play.api._
 import play.api.libs.json.Json
@@ -36,8 +37,11 @@ class AsyncController @Inject() (actorSystem: ActorSystem)(implicit exec: Execut
   def blocks = Action.async {
 //    getFutureMessage(1.second).map { msg => Ok(msg) }
 
-    val blocks = BlockchainConnector.getBlocks().map{ blocks => blocks.toBlocks }
-    blocks.map(b => Ok(blocks_template("", b)))
+    val blocks = BlockchainConnector.getBlocks()
+    blocks.map{
+      case Valid(jsonBlocks) => Ok(blocks_template("", jsonBlocks.toBlocks))
+      case Invalid(error) => Ok(error.message)
+    }
   }
 
   private def getFutureMessage(delayTime: FiniteDuration): Future[String] = {
