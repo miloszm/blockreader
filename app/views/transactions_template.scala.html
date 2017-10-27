@@ -4,8 +4,11 @@
 
 @main("Welcome to Play") {
 
- <h1>all fees:</h1>
- <!--h2>block.sumPositiveFees</h2-->
+ <h2>all fees: @{BigDecimal(block.sumFees) / BigDecimal(100000000)}</h2>
+ <h2>avg fee: @{BigDecimal(block.avgFee) / BigDecimal(100000000)}</h2>
+ <h2>max fee: @{BigDecimal(block.maxFee) / BigDecimal(100000000)}</h2>
+ <h2>min fee: @{BigDecimal(block.minFee) / BigDecimal(100000000)}</h2>
+ <h2>num transactions: @block.n_tx</h2>
  <table>
   <thead>
    <tr>
@@ -19,7 +22,7 @@
    <tr>
     <td>@{BigDecimal(transaction.sumInputs) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(transaction.sumOutputs) / BigDecimal(100000000)}</td>
-    <td>@{BigDecimal(transaction.transacted) / BigDecimal(100000000)}</td>
+    <td>@{BigDecimal(transaction.fees) / BigDecimal(100000000)}</td>
    </tr>
  }
   </tbody>

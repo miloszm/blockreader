@@ -39,12 +39,17 @@ case class Input(value: Long)
 case class Transaction(inputs: Seq[Input], outputs: Seq[Output], index: Long){
   def sumInputs: Long = inputs.map(_.value).sum
   def sumOutputs: Long = outputs.map(_.value).sum
-  def transacted = sumInputs - sumOutputs
+  def fees = sumInputs - sumOutputs
 }
 
 case class Blocks(blocks: Seq[BlockEntry])
 
 case class BlockEntry(height:Int, hash: String, time: LocalTime)
 
-case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction])
+case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]){
+  def sumFees: Long = tx.map(_.fees).filter(_ > 0).sum
+  def avgFee = sumFees / (n_tx-1)
+  def maxFee = tx.map(_.fees).filter(_ > 0).max
+  def minFee = tx.map(_.fees).filter(_ > 0).min
+}
 
