@@ -1,0 +1,28 @@
+@import _root_.model.Block
+
+@(message: String, block: Block)
+
+@main("Welcome to Play") {
+
+ <h1>all fees:</h1>
+ <!--h2>block.sumPositiveFees</h2-->
+ <table>
+  <thead>
+   <tr>
+    <th>inputs</th>
+    <th>outputs</th>
+    <th>fees</th>
+   </tr>
+  </thead>
+  <tbody>
+  @for(transaction <- block.tx) {
+   <tr>
+    <td>@{BigDecimal(transaction.sumInputs) / BigDecimal(100000000)}</td>
+    <td>@{BigDecimal(transaction.sumOutputs) / BigDecimal(100000000)}</td>
+    <td>@{BigDecimal(transaction.transacted) / BigDecimal(100000000)}</td>
+   </tr>
+ }
+  </tbody>
+ </table>
+
+}

@@ -14,6 +14,9 @@ import scala.concurrent.Future
 
 trait BlockchainConnector {
 
+  implicit val formatOutput = Json.format[JsonOutput]
+  implicit val formatInput = Json.format[JsonInput]
+  implicit val formatTransaction = Json.format[JsonTransaction]
   implicit val formatBlock = Json.format[JsonBlock]
   implicit val formatBlockEntry = Json.format[JsonBlockEntry]
   implicit val formatBlocks = Json.format[JsonBlocks]
@@ -39,7 +42,9 @@ trait BlockchainConnector {
     val futureResponse = request.get
 
     futureResponse.map { response =>
-      Valid[JsonBlock](response.json.validate[JsonBlock].get)
+      val jsonResult = response.json.validate[JsonBlock]
+      jsonResult.fold(e => Invalid[BlockReaderError](BlockConnectorError(1, e.toString)),
+                      r => Valid[JsonBlock](r))
     }.recover {
       case e: Exception =>
         Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))

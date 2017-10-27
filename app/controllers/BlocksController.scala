@@ -1,17 +1,14 @@
 package controllers
 
-import akka.actor.ActorSystem
 import javax.inject._
 
+import akka.actor.ActorSystem
 import cats.data.Validated.{Invalid, Valid}
 import connectors.BlockchainConnector
-import play.api._
-import play.api.libs.json.Json
 import play.api.mvc._
-import views.html.{block_template, blocks_template}
+import views.html.{blocks_template, transactions_template}
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: ExecutionContext) extends Controller {
@@ -25,9 +22,9 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
   }
 
   def block: Action[AnyContent] = Action.async {
-    val futureValBlock = BlockchainConnector.getBlock("0000000000000000004d62df5dc523a661f5b65899b51af9648919972e201c5c")
+    val futureValBlock = BlockchainConnector.getBlock("000000000000000000318df689850b6fe75cbad28d08540d319229e83df28000")
     futureValBlock.map{
-      case Valid(jsonBlock) => Ok(block_template("", jsonBlock.toBlock))
+      case Valid(jsonBlock) => Ok(transactions_template("", jsonBlock.toBlock))
       case Invalid(error) => Ok(error.message)
     }
   }
