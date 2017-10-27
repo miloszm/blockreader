@@ -47,9 +47,16 @@ case class Blocks(blocks: Seq[BlockEntry])
 case class BlockEntry(height:Int, hash: String, time: LocalTime)
 
 case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]){
-  def sumFees: Long = tx.map(_.fees).filter(_ > 0).sum
-  def avgFee = sumFees / (n_tx-1)
-  def maxFee = tx.map(_.fees).filter(_ > 0).max
-  def minFee = tx.map(_.fees).filter(_ > 0).min
+  def fees = tx.map(_.fees).filter(_ > 0)
+  val feesSize = n_tx-1
+  def sumFees: Long = fees.sum
+  def avgFee = sumFees / feesSize
+  def maxFee = fees.max
+  def minFee = fees.min
+  def medianFee  =
+  {
+    val (lower, upper) = fees.sortWith(_<_).splitAt(feesSize / 2)
+    if (feesSize % 2 == 0) (lower.last + upper.head) / 2 else upper.head
+  }
 }
 
