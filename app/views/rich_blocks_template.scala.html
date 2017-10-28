@@ -1,0 +1,32 @@
+@import _root_.model.RichBlocks
+
+@(message: String, richBlocks: RichBlocks)
+
+@main("Welcome to Play") {
+ <table>
+  <thead>
+   <tr>
+    <th>height</th>
+    <th>time</th>
+    <th>sum fees</th>
+    <th>avg fee</th>
+    <th>median fee</th>
+    <th>max fee</th>
+    <th>sum outputs</th>
+   </tr>
+  </thead>
+  <tbody>
+  @for(blockentry <- richBlocks.blocks) {
+   <tr>
+    <td>@blockentry.blockEntry.height</td>
+    <td>@blockentry.blockEntry.time</td>
+    <td>@{BigDecimal(blockentry.block.sumFees) / BigDecimal(100000000)}</td>
+    <td>@{BigDecimal(blockentry.block.avgFee) / BigDecimal(100000000)}</td>
+    <td>@{BigDecimal(blockentry.block.medianFee) / BigDecimal(100000000)}</td>
+    <td>@{BigDecimal(blockentry.block.maxFee) / BigDecimal(100000000)}</td>
+    <td>@{BigDecimal(blockentry.block.sumOutputs) / BigDecimal(100000000)}</td>
+   </tr>
+ }
+  </tbody>
+ </table>
+}

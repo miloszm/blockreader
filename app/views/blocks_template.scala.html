@@ -12,11 +12,11 @@
    </tr>
   </thead>
   <tbody>
-  @for(block <- blocks.blocks) {
+  @for(blockentry <- blocks.blocks) {
    <tr>
-    <td>@block.height.toString</td>
-    <td>@block.hash</td>
-    <td>@block.time</td>
+    <td>@blockentry.height.toString</td>
+    <td>@blockentry.hash</td>
+    <td>@blockentry.time</td>
    </tr>
  }
   </tbody>

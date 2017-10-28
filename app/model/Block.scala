@@ -10,7 +10,7 @@ case class JsonBlockEntry(height:Int, hash: String, time: Long){
   def toBlockEntry = BlockEntry(this.height, this.hash, new LocalTime(this.time * 1000))
 }
 
-case class JsonBlock(fee: Long, height: Long, n_tx: Int, tx: Seq[JsonTransaction]){
+case class JsonBlock(fee: Long, height: Long, n_tx: Int, tx: Seq[JsonTransaction]) {
   def toBlock = Block(fee, height, n_tx, tx.map(_.toTransaction))
 }
 
@@ -49,11 +49,11 @@ case class BlockEntry(height:Int, hash: String, time: LocalTime)
 case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]){
   def fees = tx.map(_.fees).filter(_ > 0)
   val feesSize = n_tx-1
-  def sumFees: Long = fees.sum
-  def avgFee = sumFees / feesSize
-  def maxFee = fees.max
-  def minFee = fees.min
-  def medianFee  =
+  def sumFees: Long = if (feesSize == 0) 0L else fees.sum
+  def avgFee = if (feesSize == 0) 0L else sumFees / feesSize
+  def maxFee = if (feesSize == 0) 0L else fees.max
+  def minFee = if (feesSize == 0) 0L else fees.min
+  def medianFee  = if (feesSize == 0) 0L else
   {
     val (lower, upper) = fees.sortWith(_<_).splitAt(feesSize / 2)
     if (feesSize % 2 == 0) (lower.last + upper.head) / 2 else upper.head
@@ -61,3 +61,6 @@ case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]){
   def sumOutputs = tx.map(_.sumOutputs).sum
 }
 
+case class RichBlocks(blocks: Seq[RichBlockEntry])
+
+case class RichBlockEntry(blockEntry: BlockEntry, block: Block)
