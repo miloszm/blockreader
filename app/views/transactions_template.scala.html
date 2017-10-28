@@ -17,6 +17,8 @@
     <th>inputs</th>
     <th>outputs</th>
     <th>fees</th>
+    <th>num outputs</th>
+    <th>hash</th>
    </tr>
   </thead>
   <tbody>
@@ -25,6 +27,8 @@
     <td>@{BigDecimal(transaction.sumInputs) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(transaction.sumOutputs) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(transaction.fees) / BigDecimal(100000000)}</td>
+    <td>@transaction.numOutputs</td>
+    <td>@transaction.hash</td>
    </tr>
  }
   </tbody>

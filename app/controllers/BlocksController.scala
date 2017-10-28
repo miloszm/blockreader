@@ -1,19 +1,32 @@
 package controllers
 
+import java.util.concurrent.TimeUnit
 import javax.inject._
 
+import akka.NotUsed
 import akka.actor.ActorSystem
+import akka.stream.ThrottleMode
+import akka.stream.scaladsl.Source
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import connectors.BlockchainConnector
 import model._
+import play.api.Logger
 import play.api.mvc._
 import views.html.{blocks_template, rich_blocks_template, transactions_template}
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: ExecutionContext) extends Controller {
+
+  implicit val system = ActorSystem("blockreader")
+  implicit val materializer = ActorMaterializer()
+
+  val logger = Logger
 
   def blocks: Action[AnyContent] = Action.async {
     val futureValBlocks = BlockchainConnector.getBlocks()
@@ -46,18 +59,51 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
     }
   }
 
-  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks]): Future[Seq[Validated[BlockReaderError, RichBlockEntry]]] = {
+  def enrichBlocks2(blocks: Validated[BlockReaderError, JsonBlocks]): Future[Seq[Validated[BlockReaderError, RichBlockEntry]]] = {
     blocks match {
       case Valid(bl) => {
         val richBlockEntries = for {
           jsonBlockEntry <- bl.blocks
         } yield {
-          BlockchainConnector.getBlock(jsonBlockEntry.hash) map {
-            case Valid(jb) => Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
-            case Invalid(e) => Invalid(e)
+          val response = BlockchainConnector.getBlock(jsonBlockEntry.hash)
+          response map {
+            case Valid(jb) =>
+              logger.info(s"valid block entry ${jsonBlockEntry.height}")
+              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
+            case Invalid(e) =>
+              logger.info(s"invalid block entry ${jsonBlockEntry.height}")
+              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
           }
         }
-        Future.sequence(richBlockEntries)
+        val futureRichEntries = Future.sequence(richBlockEntries)
+        logger.info(s"sequence of ${richBlockEntries.size} block requests")
+        futureRichEntries
+      }
+      case Invalid(e) => Future.successful(Seq(Invalid(e)))
+    }
+  }
+
+  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks]): Future[Seq[Validated[BlockReaderError, RichBlockEntry]]] = {
+    blocks match {
+      case Valid(bl) => {
+        val source: Source[JsonBlockEntry, NotUsed] = Source.apply[JsonBlockEntry](bl.blocks.toList)
+        val s = source.throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 5, ThrottleMode.Shaping).map{ jsonBlockEntry =>
+          val response = BlockchainConnector.getBlock(jsonBlockEntry.hash)
+          response map {
+            case Valid(jb) =>
+              logger.info(s"valid block entry ${jsonBlockEntry.height}")
+              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
+            case Invalid(e) =>
+              logger.info(s"invalid block entry ${jsonBlockEntry.height}")
+              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
+          }
+        }
+
+        val richBlockEntries = s.runFold(List[Future[Validated.Valid[RichBlockEntry]]]())((l,el) => l :+ el)
+
+        val futureRichEntries = richBlockEntries.flatMap(Future.sequence(_))
+        logger.info(s"sequence of ${bl.blocks.size} block requests")
+        futureRichEntries
       }
       case Invalid(e) => Future.successful(Seq(Invalid(e)))
     }

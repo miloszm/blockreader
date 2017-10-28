@@ -26,8 +26,8 @@ case class JsonInput(prev_out: Option[JsonOutput]){
   } yield Input(v)
 }
 
-case class JsonTransaction(inputs: Seq[JsonInput], out: Seq[JsonOutput], tx_index: Long){
-  def toTransaction = Transaction(inputs.flatMap(_.toInput), out.flatMap(_.toOutput), tx_index)
+case class JsonTransaction(inputs: Seq[JsonInput], out: Seq[JsonOutput], tx_index: Long, vin_sz: Int, vout_sz: Int, hash: String){
+  def toTransaction = Transaction(inputs.flatMap(_.toInput), out.flatMap(_.toOutput), tx_index, hash)
 }
 
 
@@ -36,19 +36,22 @@ case class Output(value: Long)
 
 case class Input(value: Long)
 
-case class Transaction(inputs: Seq[Input], outputs: Seq[Output], index: Long){
+case class Transaction(inputs: Seq[Input], outputs: Seq[Output], index: Long, hash: String){
   def sumInputs: Long = inputs.map(_.value).sum
   def sumOutputs: Long = outputs.map(_.value).sum
   def fees = sumInputs - sumOutputs
+  def numOutputs = outputs.size
 }
 
 case class Blocks(blocks: Seq[BlockEntry])
 
 case class BlockEntry(height:Int, hash: String, time: LocalTime)
 
-case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]){
+sealed trait BlockTrait{
+  def tx: Seq[Transaction]
+  def n_tx: Int
   def fees = tx.map(_.fees).filter(_ > 0)
-  val feesSize = n_tx-1
+  val feesSize = if (n_tx > 0) n_tx-1 else 0
   def sumFees: Long = if (feesSize == 0) 0L else fees.sum
   def avgFee = if (feesSize == 0) 0L else sumFees / feesSize
   def maxFee = if (feesSize == 0) 0L else fees.max
@@ -61,6 +64,12 @@ case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]){
   def sumOutputs = tx.map(_.sumOutputs).sum
 }
 
+case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction]) extends BlockTrait
+object EmptyBlock extends BlockTrait {
+  def tx = Nil
+  def n_tx = 0
+}
+
 case class RichBlocks(blocks: Seq[RichBlockEntry])
 
-case class RichBlockEntry(blockEntry: BlockEntry, block: Block)
+case class RichBlockEntry(blockEntry: BlockEntry, block: BlockTrait)

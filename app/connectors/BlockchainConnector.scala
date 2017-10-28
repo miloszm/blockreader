@@ -5,6 +5,7 @@ import java.time.{LocalDateTime, ZoneId}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import model._
+import play.api.Logger
 import play.api.Play.current
 import play.api.libs.json.Json
 import play.api.libs.ws.WS
@@ -13,6 +14,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait BlockchainConnector {
+
+  val logger = Logger
 
   implicit val formatOutput = Json.format[JsonOutput]
   implicit val formatInput = Json.format[JsonInput]
@@ -33,6 +36,7 @@ trait BlockchainConnector {
       Valid[JsonBlocks](response.json.validate[JsonBlocks].get)
     }.recover {
       case e: Exception =>
+        logger.info(s"exception in getBlocks - ${e.getMessage}")
         Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
     }
   }
@@ -43,10 +47,16 @@ trait BlockchainConnector {
 
     futureResponse.map { response =>
       val jsonResult = response.json.validate[JsonBlock]
-      jsonResult.fold(e => Invalid[BlockReaderError](BlockConnectorError(1, e.toString)),
-                      r => Valid[JsonBlock](r))
+      jsonResult.fold(
+        e => {
+//        logger.info(s"json exception in getBlock - ${e.toString}")
+        Invalid[BlockReaderError](BlockConnectorError(1, e.toString))
+        },
+        r => Valid[JsonBlock](r)
+      )
     }.recover {
       case e: Exception =>
+//        logger.info(s"exception in getBlock - ${e.getMessage}")
         Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
     }
   }
