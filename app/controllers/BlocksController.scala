@@ -36,9 +36,10 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
     }
   }
 
+  def anyblock(): Action[AnyContent] =
+    block("000000000000000000318df689850b6fe75cbad28d08540d319229e83df28000")
+
   def block(hash: String): Action[AnyContent] = Action.async {
-//    val futureValBlock = BlockchainConnector.getBlock("000000000000000000318df689850b6fe75cbad28d08540d319229e83df28000")
-//    val futureValBlock = BlockchainConnector.getBlock("000000000000000000600f97b9bbe3dfbf76967a5a49b0595ebb6b750e96df15")
     val futureValBlock = BlockchainConnector.getBlock(hash)
     futureValBlock.map{
       case Valid(jsonBlock) => Ok(transactions_template("", jsonBlock.toBlock))

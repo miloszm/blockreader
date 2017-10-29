@@ -3,6 +3,12 @@
 @(message: String, richBlocks: RichBlocks)
 
 @main("Welcome to Play") {
+
+ <h2>Avg of avg fee per byte: @{richBlocks.totalAvgFeePerByte}</h2>
+ <h2>Median of median fee per byte: @{richBlocks.totalMedianFeePerByte}</h2>
+ <h2>Avg of avg fee per byte no wait: @{richBlocks.totalAvgFeePerByteNoWait}</h2>
+ <h2>Median of median fee per byte no wait: @{richBlocks.totalMedianFeePerByteNoWait}</h2>
+
  <table>
   <thead>
    <tr>
@@ -18,6 +24,7 @@
     <th>max size</th>
     <th>median size</th>
     <th>avg fee per byte</th>
+    <th>avg fee per byte no wait</th>
     <th>hash</th>
    </tr>
   </thead>
@@ -36,6 +43,7 @@
     <td>@{blockentry.block.maxSize}</td>
     <td>@{blockentry.block.medianSize}</td>
     <td>@{blockentry.block.avgFeePerByte}</td>
+    <td>@{blockentry.block.avgFeePerByteNoWait}</td>
     <td><a href=@{s"/block/${blockentry.blockEntry.hash}"}>@blockentry.blockEntry.hash</a></td>
    </tr>
  }

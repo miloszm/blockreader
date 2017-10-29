@@ -16,6 +16,7 @@
  <h2>max size: @{block.maxSize}</h2>
  <h2>median size: @{block.medianSize}</h2>
  <h2>avg fee per byte: @{block.avgFeePerByte}</h2>
+ <h2>avg fee per byte no wait: @{block.avgFeePerByteNoWait}</h2>
  <table>
   <thead>
    <tr>
@@ -26,6 +27,8 @@
     <th>size</th>
     <th>fee per byte</th>
     <th>hash</th>
+    <th>age</th>
+    <th>age in blocks</th>
    </tr>
   </thead>
   <tbody>
@@ -38,6 +41,8 @@
     <td>@transaction.size</td>
     <td>@transaction.feePerByte</td>
     <td>@transaction.hash</td>
+    <td>@transaction.age(block.time)</td>
+    <td>@transaction.ageInBlocks(block.time)</td>
    </tr>
  }
   </tbody>
