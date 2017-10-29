@@ -11,6 +11,10 @@
  <h2>min fee: @{BigDecimal(block.minFee) / BigDecimal(100000000)}</h2>
  <h2>num transactions: @block.n_tx</h2>
  <h2>sum outputs: @{BigDecimal(block.sumOutputs) / BigDecimal(100000000)}</h2>
+ <h2>avg size: @{block.avgSize}</h2>
+ <h2>min size: @{block.minSize}</h2>
+ <h2>max size: @{block.maxSize}</h2>
+ <h2>median size: @{block.medianSize}</h2>
  <table>
   <thead>
    <tr>
@@ -18,6 +22,8 @@
     <th>outputs</th>
     <th>fees</th>
     <th>num outputs</th>
+    <th>size</th>
+    <th>fee per byte</th>
     <th>hash</th>
    </tr>
   </thead>
@@ -28,6 +34,8 @@
     <td>@{BigDecimal(transaction.sumOutputs) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(transaction.fees) / BigDecimal(100000000)}</td>
     <td>@transaction.numOutputs</td>
+    <td>@transaction.size</td>
+    <td>@transaction.feePerByte</td>
     <td>@transaction.hash</td>
    </tr>
  }

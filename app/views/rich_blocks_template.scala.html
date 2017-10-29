@@ -13,6 +13,11 @@
     <th>median fee</th>
     <th>max fee</th>
     <th>sum outputs</th>
+    <th>avg size</th>
+    <th>min size</th>
+    <th>max size</th>
+    <th>median size</th>
+    <th>avg fee per byte</th>
    </tr>
   </thead>
   <tbody>
@@ -25,6 +30,11 @@
     <td>@{BigDecimal(blockentry.block.medianFee) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(blockentry.block.maxFee) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(blockentry.block.sumOutputs) / BigDecimal(100000000)}</td>
+    <td>@{blockentry.block.avgSize}</td>
+    <td>@{blockentry.block.minSize}</td>
+    <td>@{blockentry.block.maxSize}</td>
+    <td>@{blockentry.block.medianSize}</td>
+    <td>@{blockentry.block.avgFeePerByte}</td>
    </tr>
  }
   </tbody>

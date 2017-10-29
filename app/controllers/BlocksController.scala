@@ -87,7 +87,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
     blocks match {
       case Valid(bl) => {
         val source: Source[JsonBlockEntry, NotUsed] = Source.apply[JsonBlockEntry](bl.blocks.toList)
-        val s = source.throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 5, ThrottleMode.Shaping).map{ jsonBlockEntry =>
+        val s = source.throttle(5, FiniteDuration(1, TimeUnit.SECONDS), 5, ThrottleMode.Shaping).map{ jsonBlockEntry =>
           val response = BlockchainConnector.getBlock(jsonBlockEntry.hash)
           response map {
             case Valid(jb) =>
