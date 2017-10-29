@@ -18,6 +18,7 @@
     <th>max size</th>
     <th>median size</th>
     <th>avg fee per byte</th>
+    <th>hash</th>
    </tr>
   </thead>
   <tbody>
@@ -35,6 +36,7 @@
     <td>@{blockentry.block.maxSize}</td>
     <td>@{blockentry.block.medianSize}</td>
     <td>@{blockentry.block.avgFeePerByte}</td>
+    <td><a href=@{s"/block/${blockentry.blockEntry.hash}"}>@blockentry.blockEntry.hash</a></td>
    </tr>
  }
   </tbody>
