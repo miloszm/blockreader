@@ -4,10 +4,13 @@
 
 @main("Welcome to Play") {
 
- <h2>Avg of avg fee per byte: @{richBlocks.totalAvgFeePerByte}</h2>
- <h2>Median of median fee per byte: @{richBlocks.totalMedianFeePerByte}</h2>
- <h2>Avg of avg fee per byte no wait: @{richBlocks.totalAvgFeePerByteNoWait}</h2>
- <h2>Median of median fee per byte no wait: @{richBlocks.totalMedianFeePerByteNoWait}</h2>
+ <h2>Avg of avg fee per byte: @{richBlocks.avgAvgFeePerByte}</h2>
+ <h2>Median of median fee per byte: @{richBlocks.medianMedianFeePerByte}</h2>
+ <h2>Avg of avg fee per byte no wait: @{richBlocks.avgAvgFeePerByteNoWait}</h2>
+ <h2>Median of median fee per byte no wait: @{richBlocks.medianMedianFeePerByteNoWait}</h2>
+ <h2>Avg of avg fee per byte wait one: @{richBlocks.avgAvgFeePerByteWaitOne}</h2>
+ <h2>Total avg fee per byte no wait: @{richBlocks.totalAvgFeePerByteNoWait}</h2>
+ <h2>Total median fee per byte no wait: @{richBlocks.totalMedianFeePerByteNoWait}</h2>
 
  <table>
   <thead>
@@ -25,6 +28,7 @@
     <th>median size</th>
     <th>avg fee per byte</th>
     <th>avg fee per byte no wait</th>
+    <th>avg fee per byte wait one</th>
     <th>hash</th>
    </tr>
   </thead>
@@ -44,6 +48,7 @@
     <td>@{blockentry.block.medianSize}</td>
     <td>@{blockentry.block.avgFeePerByte}</td>
     <td>@{blockentry.block.avgFeePerByteNoWait}</td>
+    <td>@{blockentry.block.avgFeePerByteWaitOne}</td>
     <td><a href=@{s"/block/${blockentry.blockEntry.hash}"}>@blockentry.blockEntry.hash</a></td>
    </tr>
  }

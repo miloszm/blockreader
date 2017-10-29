@@ -89,6 +89,10 @@ sealed trait BlockTrait {
     val fastTransactions = tx.drop(1).filter(_.ageInBlocks(time) == 0)
     StatCalc.median(fastTransactions.map(_.feePerByte))
   }
+  def avgFeePerByteWaitOne: Long = if (feesSize == 0) 0L else {
+    val fastTransactions = tx.drop(1).filter(_.ageInBlocks(time) == 1)
+    StatCalc.avg(fastTransactions.map(_.feePerByte))
+  }
 }
 
 case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction], time: Long) extends BlockTrait
@@ -100,10 +104,25 @@ object EmptyBlock extends BlockTrait {
 }
 
 case class RichBlocks(blocks: Seq[RichBlockEntry]){
-  def totalAvgFeePerByte: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByte))
-  def totalMedianFeePerByte: Long = StatCalc.median(blocks.map(_.block).filterNot(_.isEmpty).map(_.medianFeePerByte))
-  def totalAvgFeePerByteNoWait: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByteNoWait))
-  def totalMedianFeePerByteNoWait: Long = StatCalc.median(blocks.map(_.block).filterNot(_.isEmpty).map(_.medianFeePerByteNoWait))
+  def avgAvgFeePerByte: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByte))
+  def medianMedianFeePerByte: Long = StatCalc.median(blocks.map(_.block).filterNot(_.isEmpty).map(_.medianFeePerByte))
+  def avgAvgFeePerByteNoWait: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByteNoWait))
+  def medianMedianFeePerByteNoWait: Long = StatCalc.median(blocks.map(_.block).filterNot(_.isEmpty).map(_.medianFeePerByteNoWait))
+  def avgAvgFeePerByteWaitOne: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByteWaitOne))
+  def totalAvgFeePerByteNoWait: Long = {
+    val blcks = blocks.map(_.block).filterNot(_.isEmpty)
+    val notWaitingTransactions = blcks.flatMap { block =>
+      block.tx.filter(_.ageInBlocks(block.time) == 0)
+    }
+    StatCalc.avg(notWaitingTransactions.map(_.feePerByte))
+  }
+  def totalMedianFeePerByteNoWait: Long = {
+    val blcks = blocks.map(_.block).filterNot(_.isEmpty)
+    val notWaitingTransactions = blcks.flatMap { block =>
+      block.tx.filter(_.ageInBlocks(block.time) == 0)
+    }
+    StatCalc.median(notWaitingTransactions.map(_.feePerByte))
+  }
 }
 
 case class RichBlockEntry(blockEntry: BlockEntry, block: BlockTrait)
