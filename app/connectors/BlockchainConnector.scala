@@ -2,6 +2,11 @@ package connectors
 
 import java.time.{LocalDateTime, ZoneId}
 
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.ActorMaterializer
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import model._
@@ -15,6 +20,8 @@ import scala.concurrent.Future
 
 trait BlockchainConnector {
 
+  implicit val system: ActorSystem
+  implicit val materializer: ActorMaterializer
   val logger = Logger
 
   implicit val formatOutput = Json.format[JsonOutput]
@@ -42,25 +49,32 @@ trait BlockchainConnector {
   }
 
   def getBlock(blockHash: String): Future[Validated[BlockReaderError, JsonBlock]] = {
-    val request = WS.url(s"https://blockchain.info/rawblock/$blockHash")
-    val futureResponse = request.get
+    val futureResponse = Http().singleRequest(HttpRequest(uri = s"https://blockchain.info/rawblock/$blockHash"))
 
-    futureResponse.map { response =>
-      val jsonResult = response.json.validate[JsonBlock]
-      jsonResult.fold(
-        e => {
-//        logger.info(s"json exception in getBlock - ${e.toString}")
-        Invalid[BlockReaderError](BlockConnectorError(1, e.toString))
-        },
-        r => Valid[JsonBlock](r)
-      )
+    futureResponse.flatMap { response =>
+      response.status match {
+        case StatusCodes.OK =>
+          val jsonResult = Unmarshal(response.entity).to[String]
+          jsonResult.map {string =>
+            Json.parse(string)
+              .validate[JsonBlock]
+              .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))}, r => Valid[JsonBlock](r))
+          }.recover {
+            case e: Exception =>
+              Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
+          }
+        case status =>
+          Future.successful(Invalid[BlockReaderError](BlockConnectorError(1, status.toString())))
+      }
     }.recover {
       case e: Exception =>
-//        logger.info(s"exception in getBlock - ${e.getMessage}")
         Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
     }
   }
 
 }
 
-object BlockchainConnector extends BlockchainConnector
+object BlockchainConnector extends BlockchainConnector {
+  implicit val system = ActorSystem("blockreader")
+  implicit val materializer = ActorMaterializer()
+}
