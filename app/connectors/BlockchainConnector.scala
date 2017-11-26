@@ -96,6 +96,7 @@ trait BlockchainConnector {
               .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))},
                 r => {
                   cache.set(blockHeight.toString, r)
+                  logger.info(s"added to cache ${blockHeight.toString}")
                   Valid[JsonBlock](r)
                 }
               )
