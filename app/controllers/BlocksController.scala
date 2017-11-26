@@ -69,7 +69,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
           response map {
             case Valid(jb) =>
               logger.info(s"valid block entry ${jsonBlockEntry.height}")
-              cache.set(jsonBlockEntry.height.toString, jb)
+              cache.getOrElse(jsonBlockEntry.height.toString)(jb)
               Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
             case Invalid(e) =>
               logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
