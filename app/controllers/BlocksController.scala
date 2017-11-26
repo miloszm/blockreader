@@ -11,6 +11,7 @@ import cats.data.Validated.{Invalid, Valid}
 import connectors.BlockchainConnector
 import model._
 import play.api.Logger
+import play.api.cache.CacheApi
 import play.api.mvc._
 import views.html.{blocks_template, rich_blocks_template, transactions_template}
 
@@ -19,7 +20,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: ExecutionContext) extends Controller {
+class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(implicit exec: ExecutionContext) extends Controller {
 
   implicit val system = ActorSystem("blockreader")
   implicit val materializer = ActorMaterializer()
@@ -27,7 +28,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
   val logger = Logger
 
   def blocks: Action[AnyContent] = Action.async {
-    val futureValBlocks = BlockchainConnector.getBlocks()
+    val futureValBlocks = BlockchainConnector.getBlocks(cache)
     futureValBlocks.map {
       case Valid(jsonBlocks) => Ok(blocks_template("", jsonBlocks.toBlocks))
       case Invalid(error) => Ok(error.message)
@@ -38,7 +39,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
     block("000000000000000000318df689850b6fe75cbad28d08540d319229e83df28000")
 
   def block(hash: String): Action[AnyContent] = Action.async {
-    val futureValBlock = BlockchainConnector.getBlock(hash)
+    val futureValBlock = BlockchainConnector.getBlock(hash, 0, cache)
     futureValBlock.map {
       case Valid(jsonBlock) => Ok(transactions_template("", jsonBlock.toBlock))
       case Invalid(error) => Ok(error.message)
@@ -46,10 +47,10 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
   }
 
   def richBlocks: Action[AnyContent] = Action.async {
-    val futureValRichBlocks = BlockchainConnector.getBlocks()
+    val futureValRichBlocks = BlockchainConnector.getBlocks(cache)
     val futSeqValidated = futureValRichBlocks.flatMap( enrichBlocks )
     futSeqValidated.map { seqValidated =>
-      val valid = seqValidated.collect { case Valid(aaa) => aaa }
+      val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
       valid match {
         case Nil => Ok("empty")
         case l => Ok(rich_blocks_template("", RichBlocks(l)))
@@ -64,13 +65,15 @@ class BlocksController @Inject()(actorSystem: ActorSystem)(implicit exec: Execut
           .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
 
         val richBlockEntrySource = source.mapAsync(parallelism = 10) { jsonBlockEntry =>
-          val response = BlockchainConnector.getBlock(jsonBlockEntry.hash)
+          val response = BlockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height, cache)
           response map {
             case Valid(jb) =>
               logger.info(s"valid block entry ${jsonBlockEntry.height}")
+              cache.set(jsonBlockEntry.height.toString, jb)
               Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
             case Invalid(e) =>
               logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
+              cache.remove(jsonBlockEntry.height.toString)
               Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
           }
         }

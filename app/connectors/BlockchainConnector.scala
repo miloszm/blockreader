@@ -12,6 +12,7 @@ import cats.data.Validated.{Invalid, Valid}
 import model._
 import play.api.Logger
 import play.api.Play.current
+import play.api.cache.CacheApi
 import play.api.libs.json.Json
 import play.api.libs.ws.WS
 
@@ -30,17 +31,41 @@ trait BlockchainConnector {
   implicit val formatBlock = Json.format[JsonBlock]
   implicit val formatBlockEntry = Json.format[JsonBlockEntry]
   implicit val formatBlocks = Json.format[JsonBlocks]
+  implicit val formatLatestBlock = Json.format[LatestBlock]
 
   def toEpochMilli(localDateTime: LocalDateTime) =
      localDateTime.atZone(ZoneId.systemDefault())
       .toInstant.toEpochMilli
 
-  def getBlocks(): Future[Validated[BlockReaderError, JsonBlocks]] = {
+  def getLatestBlock: Future[Int] = {
+    val request = WS.url(s"https://blockchain.info/latestblock")
+    val futureResponse = request.get
+    futureResponse.map { response =>
+      val latestBlock = response.json.validate[LatestBlock].get
+      logger.info(s"latest block is ${latestBlock.height}")
+      Valid[LatestBlock](latestBlock)
+    }.map(x => x.map(_.height).getOrElse(-1))
+  }
+
+  def getBlocks(cache: CacheApi): Future[Validated[BlockReaderError, JsonBlocks]] = {
+    getLatestBlock.flatMap { latestBlock =>
+      cache.get[JsonBlocks](s"blocks${latestBlock.toString}") match {
+        case Some(blocks) =>
+          logger.info(s"cached blocks summary for ${blocks.blocks.size} blocks")
+          Future.successful(Valid(blocks))
+        case _ => doGetBlocks(cache)
+      }
+    }
+  }
+
+  def doGetBlocks(cache: CacheApi): Future[Validated[BlockReaderError, JsonBlocks]] = {
     val request = WS.url(s"https://blockchain.info/blocks/${toEpochMilli(LocalDateTime.now)}?format=json")
     val futureResponse = request.get
 
     futureResponse.map { response =>
-      Valid[JsonBlocks](response.json.validate[JsonBlocks].get)
+      val jsonBlocks = response.json.validate[JsonBlocks].get
+      cache.set(s"blocks${jsonBlocks.height.toString}", jsonBlocks)
+      Valid[JsonBlocks](jsonBlocks)
     }.recover {
       case e: Exception =>
         logger.info(s"exception in getBlocks - ${e.getMessage}")
@@ -48,7 +73,17 @@ trait BlockchainConnector {
     }
   }
 
-  def getBlock(blockHash: String): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def getBlock(blockHash: String, blockHeight: Int, cache: CacheApi): Future[Validated[BlockReaderError, JsonBlock]] = {
+    cache.get[JsonBlock](blockHeight.toString) match {
+      case Some(block) =>
+        logger.info(s"cached: ${blockHeight.toString}")
+        Future.successful(Valid(block))
+      case _ =>
+        doGetBlock(blockHash, blockHeight, cache)
+    }
+  }
+
+  def doGetBlock(blockHash: String, blockHeight: Int, cache: CacheApi): Future[Validated[BlockReaderError, JsonBlock]] = {
     val futureResponse = Http().singleRequest(HttpRequest(uri = s"https://blockchain.info/rawblock/$blockHash"))
 
     futureResponse.flatMap { response =>
@@ -58,7 +93,12 @@ trait BlockchainConnector {
           jsonResult.map {string =>
             Json.parse(string)
               .validate[JsonBlock]
-              .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))}, r => Valid[JsonBlock](r))
+              .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))},
+                r => {
+                  cache.set(blockHeight.toString, r)
+                  Valid[JsonBlock](r)
+                }
+              )
           }.recover {
             case e: Exception =>
               Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
@@ -75,6 +115,6 @@ trait BlockchainConnector {
 }
 
 object BlockchainConnector extends BlockchainConnector {
-  implicit val system = ActorSystem("blockreader")
-  implicit val materializer = ActorMaterializer()
+  implicit val system: ActorSystem = ActorSystem("blockreader")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 }

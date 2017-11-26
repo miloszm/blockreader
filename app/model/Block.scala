@@ -4,6 +4,7 @@ import org.joda.time.LocalTime
 
 case class JsonBlocks(blocks: Seq[JsonBlockEntry]) {
   def toBlocks = Blocks(this.blocks.map(_.toBlockEntry))
+  def height = this.blocks.map(_.height).max
 }
 
 case class JsonBlockEntry(height: Int, hash: String, time: Long) {
@@ -53,6 +54,8 @@ case class Transaction(inputs: Seq[Input], outputs: Seq[Output], index: Long, ha
 }
 
 case class Blocks(blocks: Seq[BlockEntry])
+
+case class LatestBlock(height: Int)
 
 case class BlockEntry(height: Int, hash: String, time: LocalTime)
 
