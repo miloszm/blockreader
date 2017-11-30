@@ -3,8 +3,7 @@ package connectors
 import java.time.{LocalDateTime, ZoneId}
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import cats.data.Validated
@@ -19,10 +18,10 @@ import play.api.libs.ws.WS
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait BlockchainConnector {
+case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
-  implicit val system: ActorSystem
-  implicit val materializer: ActorMaterializer
+  implicit val system: ActorSystem = ActorSystem("blockreader")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
   val logger = Logger
 
   implicit val formatOutput = Json.format[JsonOutput]
@@ -47,18 +46,18 @@ trait BlockchainConnector {
     }.map(x => x.map(_.height).getOrElse(-1))
   }
 
-  def getBlocks(cache: CacheApi): Future[Validated[BlockReaderError, JsonBlocks]] = {
+  def getBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
     getLatestBlock.flatMap { latestBlock =>
       cache.get[JsonBlocks](s"blocks${latestBlock.toString}") match {
         case Some(blocks) =>
           logger.info(s"cached blocks summary for ${blocks.blocks.size} blocks")
           Future.successful(Valid(blocks))
-        case _ => doGetBlocks(cache)
+        case _ => doGetBlocks
       }
     }
   }
 
-  def doGetBlocks(cache: CacheApi): Future[Validated[BlockReaderError, JsonBlocks]] = {
+  def doGetBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
     val request = WS.url(s"https://blockchain.info/blocks/${toEpochMilli(LocalDateTime.now)}?format=json")
     val futureResponse = request.get
 
@@ -73,18 +72,18 @@ trait BlockchainConnector {
     }
   }
 
-  def getBlock(blockHash: String, blockHeight: Int, cache: CacheApi): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def getBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
     cache.get[JsonBlock](blockHeight.toString) match {
       case Some(block) =>
         logger.info(s"cached: ${blockHeight.toString}")
         Future.successful(Valid(block))
       case _ =>
-        doGetBlock(blockHash, blockHeight, cache)
+        doGetBlock(blockHash, blockHeight)
     }
   }
 
-  def doGetBlock(blockHash: String, blockHeight: Int, cache: CacheApi): Future[Validated[BlockReaderError, JsonBlock]] = {
-    val futureResponse = Http().singleRequest(HttpRequest(uri = s"https://blockchain.info/rawblock/$blockHash"))
+  def doGetBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+    val futureResponse = httpClient.get(s"https://blockchain.info/rawblock/$blockHash")
 
     futureResponse.flatMap { response =>
       response.status match {
@@ -113,9 +112,4 @@ trait BlockchainConnector {
     }
   }
 
-}
-
-object BlockchainConnector extends BlockchainConnector {
-  implicit val system: ActorSystem = ActorSystem("blockreader")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
 }

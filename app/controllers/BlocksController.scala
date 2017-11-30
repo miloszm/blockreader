@@ -8,7 +8,7 @@ import akka.stream.{ActorMaterializer, ThrottleMode}
 import akka.stream.scaladsl.{Sink, Source}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import connectors.BlockchainConnector
+import connectors.{AkkaHttpClient, BlockchainConnector}
 import model._
 import play.api.Logger
 import play.api.cache.CacheApi
@@ -25,21 +25,22 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
   implicit val system = ActorSystem("blockreader")
   implicit val materializer = ActorMaterializer()
 
+  val blockchainConnector = BlockchainConnector(cache, AkkaHttpClient)
   val logger = Logger
 
   def blocks: Action[AnyContent] = Action.async {
-    val futureValBlocks = BlockchainConnector.getBlocks(cache)
+    val futureValBlocks = blockchainConnector.getBlocks
     futureValBlocks.map {
       case Valid(jsonBlocks) => Ok(blocks_template("", jsonBlocks.toBlocks))
       case Invalid(error) => Ok(error.message)
     }
   }
 
-  def anyblock(): Action[AnyContent] =
-    block("000000000000000000318df689850b6fe75cbad28d08540d319229e83df28000")
+  def genesis(): Action[AnyContent] =
+    block("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f")
 
   def block(hash: String): Action[AnyContent] = Action.async {
-    val futureValBlock = BlockchainConnector.getBlock(hash, 0, cache)
+    val futureValBlock = blockchainConnector.getBlock(hash, 0)
     futureValBlock.map {
       case Valid(jsonBlock) => Ok(transactions_template("", jsonBlock.toBlock))
       case Invalid(error) => Ok(error.message)
@@ -47,7 +48,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
   }
 
   def richBlocks: Action[AnyContent] = Action.async {
-    val futureValRichBlocks = BlockchainConnector.getBlocks(cache)
+    val futureValRichBlocks = blockchainConnector.getBlocks
     val futSeqValidated = futureValRichBlocks.flatMap( enrichBlocks )
     futSeqValidated.map { seqValidated =>
       val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
@@ -65,7 +66,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
           .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
 
         val richBlockEntrySource = source.mapAsync(parallelism = 10) { jsonBlockEntry =>
-          val response = BlockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height, cache)
+          val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
           response map {
             case Valid(jb) =>
               cache.getOrElse(jsonBlockEntry.height.toString){ jb }// todo remove
