@@ -58,13 +58,29 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   }
 
   def doGetBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
-    val request = WS.url(s"https://blockchain.info/blocks/${toEpochMilli(LocalDateTime.now)}?format=json")
-    val futureResponse = request.get
-
-    futureResponse.map { response =>
-      val jsonBlocks = response.json.validate[JsonBlocks].get
-      cache.set(s"blocks${jsonBlocks.height.toString}", jsonBlocks)
-      Valid[JsonBlocks](jsonBlocks)
+    val futureResponse = httpClient.get(s"https://blockchain.info/blocks/${toEpochMilli(LocalDateTime.now)}?format=json")
+    futureResponse.flatMap { response =>
+      response.status match {
+        case StatusCodes.OK =>
+          val jsonResult = Unmarshal(response.entity).to[String]
+          jsonResult.map {string =>
+            Json.parse(string)
+              .validate[JsonBlocks]
+              .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))},
+                jsonBlocks => {
+                  cache.set(s"blocks${jsonBlocks.height.toString}", jsonBlocks)
+                  Valid[JsonBlocks](jsonBlocks)
+                }
+              )
+          }.recover {
+            case e: Exception =>
+              logger.info(s"exception in getBlocks - ${e.getMessage}")
+              Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
+          }
+        case status =>
+          logger.info(s"failure in getBlocks - status.toString")
+          Future.successful(Invalid[BlockReaderError](BlockConnectorError(1, status.toString())))
+      }
     }.recover {
       case e: Exception =>
         logger.info(s"exception in getBlocks - ${e.getMessage}")
