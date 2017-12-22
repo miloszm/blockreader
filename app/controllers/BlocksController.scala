@@ -1,6 +1,7 @@
 package controllers
 
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject._
 
 import akka.actor.ActorSystem
@@ -27,6 +28,8 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
 
   val blockchainConnector = BlockchainConnector(cache, AkkaHttpClient)
   val logger = Logger
+  val count = new AtomicLong(0L)
+  def counter = count.incrementAndGet()
 
   def blocks: Action[AnyContent] = Action.async {
     val futureValBlocks = blockchainConnector.getBlocks
@@ -54,7 +57,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
       val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
       valid match {
         case Nil => Ok("empty")
-        case l => Ok(rich_blocks_template("", RichBlocks(l)))
+        case l => Ok(rich_blocks_template("", RichBlocks(l), counter))
       }
     }
   }

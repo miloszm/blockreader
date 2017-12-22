@@ -128,8 +128,6 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
     }
     StatCalc.median(notWaitingTransactions.map(_.feePerByte))
   }
-  var count = new AtomicLong(0L)
-  def counter = count.incrementAndGet()
 }
 
 case class RichBlockEntry(blockEntry: BlockEntry, block: BlockTrait)

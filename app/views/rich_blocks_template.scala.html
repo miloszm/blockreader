@@ -1,12 +1,12 @@
 @import _root_.model.RichBlocks
 
-@(message: String, richBlocks: RichBlocks)
+@(message: String, richBlocks: RichBlocks, count: Long)
 
 @main("Welcome to Play") {
 
- <head> <meta http-equiv="refresh" content="20" /> </head>
+ <head> <meta http-equiv="refresh" content="15" /> </head>
 
- <h1>@richBlocks.counter</h1>
+ <h1>@count</h1>
  <h2>Avg of avg fee per byte: @{richBlocks.avgAvgFeePerByte}</h2>
  <h2>Median of median fee per byte: @{richBlocks.medianMedianFeePerByte}</h2>
  <h2>Avg of avg fee per byte no wait: @{richBlocks.avgAvgFeePerByteNoWait}</h2>
