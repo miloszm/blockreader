@@ -69,7 +69,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
           val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
           response map {
             case Valid(jb) =>
-              cache.getOrElse(jsonBlockEntry.height.toString){ jb }// todo remove
+              cache.getOrElse(jsonBlockEntry.height.toString){ jb }
               Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
             case Invalid(e) =>
               logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")

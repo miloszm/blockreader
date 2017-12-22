@@ -1,5 +1,7 @@
 package model
 
+import java.util.concurrent.atomic.AtomicLong
+
 import org.joda.time.LocalTime
 
 case class JsonBlocks(blocks: Seq[JsonBlockEntry]) {
@@ -126,6 +128,8 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
     }
     StatCalc.median(notWaitingTransactions.map(_.feePerByte))
   }
+  var count = new AtomicLong(0L)
+  def counter = count.incrementAndGet()
 }
 
 case class RichBlockEntry(blockEntry: BlockEntry, block: BlockTrait)

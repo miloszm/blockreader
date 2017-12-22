@@ -16,7 +16,8 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WS
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, duration}
+import scala.concurrent.duration.{Duration, HOURS}
 
 case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
@@ -68,7 +69,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
               .validate[JsonBlocks]
               .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))},
                 jsonBlocks => {
-                  cache.set(s"blocks${jsonBlocks.height.toString}", jsonBlocks)
+                  cache.set(s"blocks${jsonBlocks.height.toString}", jsonBlocks, Duration(49, HOURS))
                   Valid[JsonBlocks](jsonBlocks)
                 }
               )
@@ -110,7 +111,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
               .validate[JsonBlock]
               .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))},
                 r => {
-                  cache.set(blockHeight.toString, r)
+                  cache.set(blockHeight.toString, r, Duration(25, HOURS))
                   logger.info(s"added to cache ${blockHeight.toString}")
                   Valid[JsonBlock](r)
                 }
