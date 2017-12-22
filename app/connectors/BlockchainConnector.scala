@@ -51,7 +51,9 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
     getLatestBlock.flatMap { latestBlock =>
       cache.get[JsonBlocks](s"blocks${latestBlock.toString}") match {
         case Some(blocks) =>
-          logger.info(s"cached blocks summary for ${blocks.blocks.size} blocks")
+          val firstBlock = blocks.blocks.headOption.map(_.height.toString).getOrElse("")
+          val lastBlock = blocks.blocks.lastOption.map(_.height.toString).getOrElse("")
+          logger.info(s"blocks summary from cache for ${blocks.blocks.size} blocks - $lastBlock..$firstBlock")
           Future.successful(Valid(blocks))
         case _ => doGetBlocks
       }
@@ -92,7 +94,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   def getBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
     cache.get[JsonBlock](blockHeight.toString) match {
       case Some(block) =>
-        logger.info(s"cached: ${blockHeight.toString}")
+        //logger.info(s"cached: ${blockHeight.toString}")
         Future.successful(Valid(block))
       case _ =>
         doGetBlock(blockHash, blockHeight)
