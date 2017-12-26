@@ -91,9 +91,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
     }
 
     val richBlockEntries: Future[Seq[Valid[RichBlockEntry]]] =
-      cache.getOrElse(bl.signature, Duration(20, MINUTES)) {
-        richBlockEntrySource.runWith(Sink.seq)
-      }
+      richBlockEntrySource.runWith(Sink.seq)
     logger.info(s"sequence of ${bl.blocks.size} block requests")
     richBlockEntries
   }

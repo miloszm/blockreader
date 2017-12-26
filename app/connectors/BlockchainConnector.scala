@@ -17,7 +17,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WS
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, duration}
 import scala.concurrent.duration.{Duration, HOURS}
 import model.BlockReaderError
 
@@ -47,7 +47,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
   def getBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
     getLatestBlock.flatMap { latestBlock =>
-      cache.get[JsonBlocks](s"blocks${latestBlock.toString}") match {
+      cache.get[JsonBlocks](s"blocksummary${latestBlock.toString}") match {
         case Some(blocks) =>
           logger.info(s"blocks summary from cache for ${blocks.signature}")
           Future.successful(Valid(blocks))
@@ -61,7 +61,9 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
           futValBlocks.map { valBlocks =>
             valBlocks.map{ blocks =>
               val sortedBlocks = JsonBlocks(blocks.blocks.sortWith((a,b) => a.time >= b.time))
-              cache.set(s"blocks${blocks.height.toString}", sortedBlocks, Duration(49, HOURS))
+              logger.info(s"caching new block summary for height ${blocks.height.toString}")
+              cache.remove(s"blocksummary${(latestBlock-1).toString}")
+              cache.set(s"blocksummary${blocks.height.toString}", sortedBlocks, Duration(20, duration.MINUTES))
               sortedBlocks
             }
           }
@@ -103,7 +105,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   def getBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
     cache.get[JsonBlock](blockHeight.toString) match {
       case Some(block) =>
-        //logger.info(s"cached: ${blockHeight.toString}")
+        logger.info(s"got one block from cache: ${blockHeight.toString}")
         Future.successful(Valid(block))
       case _ =>
         doGetBlock(blockHash, blockHeight)
@@ -123,7 +125,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
               .fold(e => { Invalid[BlockReaderError](BlockReaderError(1, e.toString))},
                 r => {
                   cache.set(blockHeight.toString, r, Duration(25, HOURS))
-                  logger.info(s"added to cache ${blockHeight.toString}")
+                  logger.info(s"added one block to cache ${blockHeight.toString}")
                   Valid[JsonBlock](r)
                 }
               )
