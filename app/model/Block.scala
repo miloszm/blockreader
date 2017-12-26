@@ -1,6 +1,9 @@
 package model
 
+import java.time.LocalDateTime
+
 import cats.Semigroup
+import connectors.BlockchainConnector
 import org.joda.time.LocalTime
 
 case class JsonBlocks(blocks: Seq[JsonBlockEntry]) {
@@ -125,8 +128,17 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
     }
     StatCalc.avg(notWaitingTransactions.map(_.feePerByte))
   }
-  def totalMedianFeePerByteNoWait: Long = {
-    val blcks = blocks.map(_.block).filterNot(_.isEmpty)
+  def last24hMedianFeePerByteNoWait: Long = {
+    val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
+    val blcks = blocks.map(_.block).filterNot(_.isEmpty).filter(now - _.time*1000 < 24*3600*1000)
+    val notWaitingTransactions = blcks.flatMap { block =>
+      block.tx.filter(_.ageInBlocks(block.time) == 0)
+    }
+    StatCalc.median(notWaitingTransactions.map(_.feePerByte))
+  }
+  def last2hMedianFeePerByteNoWait: Long = {
+    val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
+    val blcks = blocks.map(_.block).filterNot(_.isEmpty).filter(now - _.time*1000 < 2*3600*1000)
     val notWaitingTransactions = blcks.flatMap { block =>
       block.tx.filter(_.ageInBlocks(block.time) == 0)
     }

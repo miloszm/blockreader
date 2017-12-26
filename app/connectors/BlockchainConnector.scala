@@ -8,6 +8,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
+import connectors.BlockchainConnector.toEpochMilli
 import model._
 import play.api.Logger
 import play.api.Play.current
@@ -33,10 +34,6 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   implicit val formatBlockEntry = Json.format[JsonBlockEntry]
   implicit val formatBlocks = Json.format[JsonBlocks]
   implicit val formatLatestBlock = Json.format[LatestBlock]
-
-  def toEpochMilli(localDateTime: LocalDateTime) =
-     localDateTime.atZone(ZoneId.systemDefault())
-      .toInstant.toEpochMilli
 
   def getLatestBlock: Future[Int] = {
     val request = WS.url(s"https://blockchain.info/latestblock")
@@ -143,4 +140,11 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
     }
   }
 
+}
+
+
+object BlockchainConnector {
+  def toEpochMilli(localDateTime: LocalDateTime) =
+     localDateTime.atZone(ZoneId.systemDefault())
+      .toInstant.toEpochMilli
 }
