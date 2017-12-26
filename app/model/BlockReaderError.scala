@@ -1,8 +1,9 @@
 package model
 
-sealed trait BlockReaderError {
-  def code:Int
-  def message: String
-}
+import cats.kernel.Semigroup
 
-case class BlockConnectorError(code:Int, message:String) extends BlockReaderError
+final case class BlockReaderError(code: Int, message: String)
+
+object BlockReaderError extends Semigroup[BlockReaderError] {
+  override def combine(x: BlockReaderError, y: BlockReaderError) = BlockReaderError(x.code, s"${x.message} ${y.message}")
+}

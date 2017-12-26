@@ -6,7 +6,7 @@
 
  <head> <meta http-equiv="refresh" content="30" /> </head>
 
- <h1>@count</h1>
+ <h1>@count (@richBlocks.blocks.headOption.map(_.blockEntry.height))</h1>
  <h2>Avg of avg fee per byte: @{richBlocks.avgAvgFeePerByte}</h2>
  <h2>Median of median fee per byte: @{richBlocks.medianMedianFeePerByte}</h2>
  <h2>Avg of avg fee per byte no wait: @{richBlocks.avgAvgFeePerByteNoWait}</h2>

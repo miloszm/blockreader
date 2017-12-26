@@ -1,5 +1,6 @@
 package controllers
 
+import java.util
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject._
@@ -17,8 +18,8 @@ import play.api.mvc._
 import views.html.{blocks_template, rich_blocks_template, transactions_template}
 
 import scala.collection.immutable.Seq
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{Duration, FiniteDuration, MINUTES}
+import scala.concurrent.{ExecutionContext, Future, duration}
 
 @Singleton
 class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(implicit exec: ExecutionContext) extends Controller {
@@ -64,29 +65,36 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
 
   def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks]): Future[Seq[Validated[BlockReaderError, RichBlockEntry]]] = {
     blocks match {
-      case Valid(bl) => {
-        val source = Source.apply[JsonBlockEntry](bl.blocks.toList)
-          .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
-
-        val richBlockEntrySource = source.mapAsync(parallelism = 10) { jsonBlockEntry =>
-          val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
-          response map {
-            case Valid(jb) =>
-              cache.getOrElse(jsonBlockEntry.height.toString){ jb }
-              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
-            case Invalid(e) =>
-              logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
-              cache.remove(jsonBlockEntry.height.toString)
-              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
-          }
-        }
-
-        val richBlockEntries: Future[Seq[Valid[RichBlockEntry]]] = richBlockEntrySource.runWith(Sink.seq)
-        logger.info(s"sequence of ${bl.blocks.size} block requests")
-        richBlockEntries
-      }
-      case Invalid(e) => Future.successful(Seq(Invalid(e)))
+      case Valid(bl) =>
+        produceRichBlockEntries(bl)
+      case Invalid(e) =>Future.successful(Seq(Invalid(e)))
     }
   }
 
+  private def produceRichBlockEntries(bl: JsonBlocks): Future[Seq[Valid[RichBlockEntry]]] = {
+    val source = Source.apply[JsonBlockEntry](bl.blocks.toList)
+      .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
+
+    val richBlockEntrySource = source.mapAsync(parallelism = 10) { jsonBlockEntry =>
+      val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
+      response map {
+        case Valid(jb) =>
+          cache.getOrElse(jsonBlockEntry.height.toString) {
+            jb
+          }
+          Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
+        case Invalid(e) =>
+          logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
+          cache.remove(jsonBlockEntry.height.toString)
+          Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
+      }
+    }
+
+    val richBlockEntries: Future[Seq[Valid[RichBlockEntry]]] =
+      cache.getOrElse(bl.signature, Duration(20, MINUTES)) {
+        richBlockEntrySource.runWith(Sink.seq)
+      }
+    logger.info(s"sequence of ${bl.blocks.size} block requests")
+    richBlockEntries
+  }
 }

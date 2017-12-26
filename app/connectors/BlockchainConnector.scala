@@ -1,6 +1,6 @@
 package connectors
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.{LocalDate, LocalDateTime, ZoneId}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
@@ -16,8 +16,9 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WS
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, duration}
+import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, HOURS}
+import model.BlockReaderError
 
 case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
@@ -51,17 +52,29 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
     getLatestBlock.flatMap { latestBlock =>
       cache.get[JsonBlocks](s"blocks${latestBlock.toString}") match {
         case Some(blocks) =>
-          val firstBlock = blocks.blocks.headOption.map(_.height.toString).getOrElse("")
-          val lastBlock = blocks.blocks.lastOption.map(_.height.toString).getOrElse("")
-          logger.info(s"blocks summary from cache for ${blocks.blocks.size} blocks - $lastBlock..$firstBlock")
+          logger.info(s"blocks summary from cache for ${blocks.signature}")
           Future.successful(Valid(blocks))
-        case _ => doGetBlocks
+        case _ => {
+          val d1 = doGetBlocks(LocalDateTime.now)
+          val d2 = doGetBlocks(LocalDate.now.atStartOfDay().minusSeconds(2))
+          val futValBlocks = for {
+            v1 <- d1
+            v2 <- d2
+          } yield v1.combine(v2)(BlockReaderError, JsonBlocks)
+          futValBlocks.map { valBlocks =>
+            valBlocks.map{ blocks =>
+              val sortedBlocks = JsonBlocks(blocks.blocks.sortWith((a,b) => a.time >= b.time))
+              cache.set(s"blocks${blocks.height.toString}", sortedBlocks, Duration(49, HOURS))
+              sortedBlocks
+            }
+          }
+        }
       }
     }
   }
 
-  def doGetBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
-    val futureResponse = httpClient.get(s"https://blockchain.info/blocks/${toEpochMilli(LocalDateTime.now)}?format=json")
+  def doGetBlocks(dateTime:LocalDateTime): Future[Validated[BlockReaderError, JsonBlocks]] = {
+    val futureResponse = httpClient.get(s"https://blockchain.info/blocks/${toEpochMilli(dateTime)}?format=json")
     futureResponse.flatMap { response =>
       response.status match {
         case StatusCodes.OK =>
@@ -69,25 +82,24 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
           jsonResult.map {string =>
             Json.parse(string)
               .validate[JsonBlocks]
-              .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))},
+              .fold(e => { Invalid[BlockReaderError](BlockReaderError(1, e.toString))},
                 jsonBlocks => {
-                  cache.set(s"blocks${jsonBlocks.height.toString}", jsonBlocks, Duration(49, HOURS))
                   Valid[JsonBlocks](jsonBlocks)
                 }
               )
           }.recover {
             case e: Exception =>
               logger.info(s"exception in getBlocks - ${e.getMessage}")
-              Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
+              Invalid[BlockReaderError](BlockReaderError(1, e.getMessage))
           }
         case status =>
           logger.info(s"failure in getBlocks - status.toString")
-          Future.successful(Invalid[BlockReaderError](BlockConnectorError(1, status.toString())))
+          Future.successful(Invalid[BlockReaderError](BlockReaderError(1, status.toString())))
       }
     }.recover {
       case e: Exception =>
         logger.info(s"exception in getBlocks - ${e.getMessage}")
-        Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
+        Invalid[BlockReaderError](BlockReaderError(1, e.getMessage))
     }
   }
 
@@ -111,7 +123,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
           jsonResult.map {string =>
             Json.parse(string)
               .validate[JsonBlock]
-              .fold(e => { Invalid[BlockReaderError](BlockConnectorError(1, e.toString))},
+              .fold(e => { Invalid[BlockReaderError](BlockReaderError(1, e.toString))},
                 r => {
                   cache.set(blockHeight.toString, r, Duration(25, HOURS))
                   logger.info(s"added to cache ${blockHeight.toString}")
@@ -120,14 +132,14 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
               )
           }.recover {
             case e: Exception =>
-              Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
+              Invalid[BlockReaderError](BlockReaderError(1, e.getMessage))
           }
         case status =>
-          Future.successful(Invalid[BlockReaderError](BlockConnectorError(1, status.toString())))
+          Future.successful(Invalid[BlockReaderError](BlockReaderError(1, status.toString())))
       }
     }.recover {
       case e: Exception =>
-        Invalid[BlockReaderError](BlockConnectorError(1, e.getMessage))
+        Invalid[BlockReaderError](BlockReaderError(1, e.getMessage))
     }
   }
 
