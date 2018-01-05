@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicLong
 import javax.inject._
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.stream.{ActorMaterializer, ThrottleMode}
 import akka.stream.scaladsl.{Sink, Source}
 import cats.data.Validated
@@ -14,8 +15,9 @@ import connectors.{AkkaHttpClient, BlockchainConnector}
 import model._
 import play.api.Logger
 import play.api.cache.CacheApi
+import play.api.http.Status.NO_CONTENT
 import play.api.mvc._
-import views.html.{blocks_template, rich_blocks_template, transactions_template}
+import views.html.{blocks_template, rich_blocks_empty_template, rich_blocks_template, transactions_template}
 
 import scala.collection.immutable.Seq
 import scala.concurrent.duration.{Duration, FiniteDuration, MINUTES}
@@ -57,7 +59,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
     futSeqValidated.map { seqValidated =>
       val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
       valid match {
-        case Nil => Ok("empty")
+        case Nil => Ok(rich_blocks_empty_template(""))
         case l => Ok(rich_blocks_template("", RichBlocks(l), counter))
       }
     }
