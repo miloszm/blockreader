@@ -7,11 +7,6 @@
  <head> <meta http-equiv="refresh" content="30" /> </head>
 
  <h1>@count (@richBlocks.blocks.headOption.map(_.blockEntry.height))</h1>
- <h2>Avg of avg fee per byte: @{richBlocks.avgAvgFeePerByte}</h2>
- <h2>Median of median fee per byte: @{richBlocks.medianMedianFeePerByte}</h2>
- <h2>Avg of avg fee per byte no wait: @{richBlocks.avgAvgFeePerByteNoWait}</h2>
- <h2>Median of median fee per byte no wait: @{richBlocks.medianMedianFeePerByteNoWait}</h2>
- <h2>Avg of avg fee per byte wait one: @{richBlocks.avgAvgFeePerByteWaitOne}</h2>
  <h2>Total avg fee per byte no wait: @{richBlocks.totalAvgFeePerByteNoWait}</h2>
  <h1>Last 24h median fee per byte no wait: @{richBlocks.last24hMedianFeePerByteNoWait}</h1>
  <h1>Last 2h median fee per byte no wait: @{richBlocks.last2hMedianFeePerByteNoWait}</h1>
@@ -25,14 +20,6 @@
     <th>avg fee</th>
     <th>median fee</th>
     <th>max fee</th>
-    <th>sum outputs</th>
-    <th>avg size</th>
-    <th>min size</th>
-    <th>max size</th>
-    <th>median size</th>
-    <th>avg fee per byte</th>
-    <th>avg fee per byte no wait</th>
-    <th>avg fee per byte wait one</th>
     <th>hash</th>
    </tr>
   </thead>
@@ -45,14 +32,6 @@
     <td>@{BigDecimal(blockentry.block.avgFee) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(blockentry.block.medianFee) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(blockentry.block.maxFee) / BigDecimal(100000000)}</td>
-    <td>@{BigDecimal(blockentry.block.sumOutputs) / BigDecimal(100000000)}</td>
-    <td>@{blockentry.block.avgSize}</td>
-    <td>@{blockentry.block.minSize}</td>
-    <td>@{blockentry.block.maxSize}</td>
-    <td>@{blockentry.block.medianSize}</td>
-    <td>@{blockentry.block.avgFeePerByte}</td>
-    <td>@{blockentry.block.avgFeePerByteNoWait}</td>
-    <td>@{blockentry.block.avgFeePerByteWaitOne}</td>
     <td><a href=@{s"/block/${blockentry.blockEntry.hash}"}>@blockentry.blockEntry.hash</a></td>
    </tr>
  }

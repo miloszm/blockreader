@@ -103,13 +103,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   }
 
   def getBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
-    cache.get[JsonBlock](blockHeight.toString) match {
-      case Some(block) =>
-        logger.info(s"got one block from cache: ${blockHeight.toString}")
-        Future.successful(Valid(block))
-      case _ =>
-        doGetBlock(blockHash, blockHeight)
-    }
+    doGetBlock(blockHash, blockHeight)
   }
 
   def doGetBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
@@ -124,8 +118,6 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
               .validate[JsonBlock]
               .fold(e => { Invalid[BlockReaderError](BlockReaderError(1, e.toString))},
                 r => {
-                  cache.set(blockHeight.toString, r, Duration(25, HOURS))
-                  logger.info(s"added one block to cache ${blockHeight.toString}")
                   Valid[JsonBlock](r)
                 }
               )

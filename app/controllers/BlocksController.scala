@@ -78,17 +78,24 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
       .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
 
     val richBlockEntrySource = source.mapAsync(parallelism = 10) { jsonBlockEntry =>
-      val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
-      response map {
-        case Valid(jb) =>
-          cache.getOrElse(jsonBlockEntry.height.toString) {
-            jb
+      cache.get[RichBlockEntry](jsonBlockEntry.height.toString) match {
+        case Some(richBlockEntry) =>
+          logger.info(s"got from cache block ${jsonBlockEntry.height}")
+          Future.successful(Valid(richBlockEntry))
+        case _ => {
+          val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
+          response map {
+            case Valid(jb) =>
+              val rbe = RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock)
+              logger.info(s"fees for second transaction = ${rbe.block.tx.drop(1).headOption.map(_.fees)}")
+              cache.set(jsonBlockEntry.height.toString, rbe)
+              logger.info(s"added to cache block ${jsonBlockEntry.height}")
+              Valid(rbe)
+            case Invalid(e) =>
+              logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
+              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
           }
-          Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock))
-        case Invalid(e) =>
-          logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
-          cache.remove(jsonBlockEntry.height.toString)
-          Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
+        }
       }
     }
 

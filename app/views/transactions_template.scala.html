@@ -10,13 +10,6 @@
  <h2>max fee: @{BigDecimal(block.maxFee) / BigDecimal(100000000)}</h2>
  <h2>min fee: @{BigDecimal(block.minFee) / BigDecimal(100000000)}</h2>
  <h2>num transactions: @block.n_tx</h2>
- <h2>sum outputs: @{BigDecimal(block.sumOutputs) / BigDecimal(100000000)}</h2>
- <h2>avg size: @{block.avgSize}</h2>
- <h2>min size: @{block.minSize}</h2>
- <h2>max size: @{block.maxSize}</h2>
- <h2>median size: @{block.medianSize}</h2>
- <h2>avg fee per byte: @{block.avgFeePerByte}</h2>
- <h2>avg fee per byte no wait: @{block.avgFeePerByteNoWait}</h2>
  <table>
   <thead>
    <tr>
@@ -34,13 +27,9 @@
   <tbody>
   @for(transaction <- block.tx) {
    <tr>
-    <td>@{BigDecimal(transaction.sumInputs) / BigDecimal(100000000)}</td>
-    <td>@{BigDecimal(transaction.sumOutputs) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(transaction.fees) / BigDecimal(100000000)}</td>
-    <td>@transaction.numOutputs</td>
     <td>@transaction.size</td>
     <td>@transaction.feePerByte</td>
-    <td>@transaction.hash</td>
     <td>@transaction.age(block.time)</td>
     <td>@transaction.ageInBlocks(block.time)</td>
    </tr>

@@ -21,7 +21,7 @@ case class JsonBlockEntry(height: Int, hash: String, time: Long) {
 }
 
 case class JsonBlock(fee: Long, height: Long, n_tx: Int, tx: Seq[JsonTransaction], time: Long) {
-  def toBlock = Block(fee, height, n_tx, tx.map(_.toTransaction), time)
+  def toBlock = Block(fee, height, n_tx, tx.map(_.toFeeOnlyTransaction), time)
 }
 
 case class JsonOutput(value: Option[Long]) {
@@ -46,6 +46,12 @@ case class JsonTransaction(
   time: Long
 ) {
   def toTransaction = Transaction(inputs.flatMap(_.toInput), out.flatMap(_.toOutput), tx_index, hash, size, time)
+  def toFeeOnlyTransaction = {
+    val sumInputs: Long = inputs.flatMap(_.toInput).map(_.value).sum
+    val sumOutputs: Long = out.flatMap(_.toOutput).map(_.value).sum
+    val fees = sumInputs - sumOutputs
+    FeeOnlyTransaction(fees, size, time)
+  }
 }
 
 case class Output(value: Long)
@@ -62,6 +68,12 @@ case class Transaction(inputs: Seq[Input], outputs: Seq[Output], index: Long, ha
   def ageInBlocks(t: Long): Long = age(t) / 600
 }
 
+case class FeeOnlyTransaction(fees: Long, size: Int, time: Long){
+  def age(t: Long): Long = t - time
+  def ageInBlocks(t: Long): Long = age(t) / 600
+  def feePerByte: Long = if (size == 0 || fees < 0) 0 else fees / size
+}
+
 case class Blocks(blocks: Seq[BlockEntry])
 
 case class LatestBlock(height: Int)
@@ -70,7 +82,7 @@ case class BlockEntry(height: Int, hash: String, time: LocalTime)
 
 sealed trait BlockTrait {
   def isEmpty = false
-  def tx: Seq[Transaction]
+  def tx: Seq[FeeOnlyTransaction]
   def n_tx: Int
   def time: Long
   def fees = tx.map(_.fees).filter(_ > 0)
@@ -79,35 +91,10 @@ sealed trait BlockTrait {
   def avgFee = if (feesSize == 0) 0L else sumFees / feesSize
   def maxFee = if (feesSize == 0) 0L else fees.max
   def minFee = if (feesSize == 0) 0L else fees.min
-  def medianFee: Long = if (feesSize == 0) 0L else {
-    val (lower, upper) = fees.sortWith(_ < _).splitAt(feesSize / 2)
-    if (feesSize % 2 == 0) (lower.last + upper.head) / 2 else upper.head
-  }
-  def sumOutputs = tx.map(_.sumOutputs).sum
-  def avgSize: BigDecimal = if (feesSize > 0) tx.drop(1).map(_.size).sum / feesSize else 0
-  def minSize: Int = if (feesSize > 0) tx.drop(1).map(_.size).min else 0
-  def maxSize: Int = if (feesSize > 0) tx.drop(1).map(_.size).max else 0
-  def medianSize: BigDecimal = if (feesSize == 0) 0L else {
-    val (lower, upper) = tx.drop(1).map(_.size).sortWith(_ < _).splitAt(feesSize / 2)
-    if (feesSize % 2 == 0) (lower.last + upper.head) / 2 else upper.head
-  }
-  def avgFeePerByte: Long = StatCalc.avg(tx.drop(1).map(_.feePerByte))
-  def medianFeePerByte: Long = StatCalc.median(tx.drop(1).map(_.feePerByte))
-  def avgFeePerByteNoWait: Long = if (feesSize == 0) 0L else {
-    val fastTransactions = tx.drop(1).filter(_.ageInBlocks(time) == 0)
-    fastTransactions.map(_.feePerByte).sum / fastTransactions.size
-  }
-  def medianFeePerByteNoWait: Long = if (feesSize == 0) 0L else {
-    val fastTransactions = tx.drop(1).filter(_.ageInBlocks(time) == 0)
-    StatCalc.median(fastTransactions.map(_.feePerByte))
-  }
-  def avgFeePerByteWaitOne: Long = if (feesSize == 0) 0L else {
-    val fastTransactions = tx.drop(1).filter(_.ageInBlocks(time) == 1)
-    StatCalc.avg(fastTransactions.map(_.feePerByte))
-  }
+  def medianFee: Long = StatCalc.median(fees)
 }
 
-case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[Transaction], time: Long) extends BlockTrait
+case class Block(fee: Long, height: Long, n_tx: Int, tx: Seq[FeeOnlyTransaction], time: Long) extends BlockTrait
 object EmptyBlock extends BlockTrait {
   def tx = Nil
   def n_tx = 0
@@ -116,11 +103,6 @@ object EmptyBlock extends BlockTrait {
 }
 
 case class RichBlocks(blocks: Seq[RichBlockEntry]){
-  def avgAvgFeePerByte: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByte))
-  def medianMedianFeePerByte: Long = StatCalc.median(blocks.map(_.block).filterNot(_.isEmpty).map(_.medianFeePerByte))
-  def avgAvgFeePerByteNoWait: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByteNoWait))
-  def medianMedianFeePerByteNoWait: Long = StatCalc.median(blocks.map(_.block).filterNot(_.isEmpty).map(_.medianFeePerByteNoWait))
-  def avgAvgFeePerByteWaitOne: Long = StatCalc.avg(blocks.map(_.block).filterNot(_.isEmpty).map(_.avgFeePerByteWaitOne))
   def totalAvgFeePerByteNoWait: Long = {
     val blcks = blocks.map(_.block).filterNot(_.isEmpty)
     val notWaitingTransactions = blcks.flatMap { block =>
@@ -152,7 +134,8 @@ object StatCalc {
   def avg(coll: Seq[Long]): Long =
     if (coll.isEmpty) 0 else coll.sum / coll.size
   def median(coll: Seq[Long]): Long = {
-    if (coll.isEmpty) 0 else {
+    if (coll.isEmpty) 0 else
+    if (coll.size == 1) coll.head else {
       val (lower, upper) = coll.sortWith(_ < _).splitAt(coll.size / 2)
       if (coll.size % 2 == 0) (lower.last + upper.head) / 2 else upper.head
     }
