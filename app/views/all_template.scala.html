@@ -1,0 +1,14 @@
+@import _root_.model.AllTransactions
+@(all: AllTransactions)
+
+@main("Block reader") {
+
+ <head> <meta http-equiv="refresh" content="30" /> </head>
+
+ <h1>Top block: @{all.topBlock}</h1>
+ <h1>Bottom block: @{all.bottomBlock}</h1>
+ <h1>Total: @{all.all.size}</h1>
+ <h1>Total median fee pre byte: @{all.totalMedian}</h1>
+ <h1>Total median fee per byte last 24h: @{all.totalMedianLast24h}</h1>
+
+}

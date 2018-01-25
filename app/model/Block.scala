@@ -21,7 +21,7 @@ case class JsonBlockEntry(height: Int, hash: String, time: Long) {
 }
 
 case class JsonBlock(fee: Long, height: Long, n_tx: Int, tx: Seq[JsonTransaction], time: Long) {
-  def toBlock = Block(fee, height, n_tx, tx.map(_.toFeeOnlyTransaction), time)
+  def toBlock = Block(fee, height, n_tx, tx.zipWithIndex.map{case (transaction, index) => transaction.toFeeOnlyTransaction(height, index)}, time)
 }
 
 case class JsonOutput(value: Option[Long]) {
@@ -46,11 +46,11 @@ case class JsonTransaction(
   time: Long
 ) {
   def toTransaction = Transaction(inputs.flatMap(_.toInput), out.flatMap(_.toOutput), tx_index, hash, size, time)
-  def toFeeOnlyTransaction = {
+  def toFeeOnlyTransaction(height: Long, index: Int) = {
     val sumInputs: Long = inputs.flatMap(_.toInput).map(_.value).sum
     val sumOutputs: Long = out.flatMap(_.toOutput).map(_.value).sum
     val fees = sumInputs - sumOutputs
-    FeeOnlyTransaction(fees, size, time)
+    FeeOnlyTransaction(height, index, fees, size, time)
   }
 }
 
@@ -68,7 +68,7 @@ case class Transaction(inputs: Seq[Input], outputs: Seq[Output], index: Long, ha
   def ageInBlocks(t: Long): Long = age(t) / 600
 }
 
-case class FeeOnlyTransaction(fees: Long, size: Int, time: Long){
+case class FeeOnlyTransaction(height: Long, index: Int, fees: Long, size: Int, time: Long){
   def age(t: Long): Long = t - time
   def ageInBlocks(t: Long): Long = age(t) / 600
   def feePerByte: Long = if (size == 0 || fees < 0) 0 else fees / size
@@ -126,6 +126,10 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
     }
     StatCalc.median(notWaitingTransactions.map(_.feePerByte))
   }
+  def totalMedian: Long = {
+    val transactions = blocks.map(_.block).flatMap(_.tx)
+    StatCalc.median(transactions.map(_.feePerByte))
+  }
 }
 
 case class RichBlockEntry(blockEntry: BlockEntry, block: BlockTrait)
@@ -139,5 +143,15 @@ object StatCalc {
       val (lower, upper) = coll.sortWith(_ < _).splitAt(coll.size / 2)
       if (coll.size % 2 == 0) (lower.last + upper.head) / 2 else upper.head
     }
+  }
+}
+
+case class AllTransactions(all: Seq[FeeOnlyTransaction]){
+  def topBlock: Long = if (all.isEmpty) 0L else all.map(_.height).max
+  def bottomBlock: Long = if (all.isEmpty) 0L else all.map(_.height).min
+  def totalMedian: Long = StatCalc.median(all.map(_.feePerByte))
+  def totalMedianLast24h: Long = {
+    val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
+    StatCalc.median(all.filter(now - _.time*1000 < 24*3600*1000).map(_.feePerByte))
   }
 }

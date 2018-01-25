@@ -17,7 +17,7 @@ import play.api.Logger
 import play.api.cache.CacheApi
 import play.api.http.Status.NO_CONTENT
 import play.api.mvc._
-import views.html.{blocks_template, rich_blocks_empty_template, rich_blocks_template, transactions_template}
+import views.html._
 
 import scala.collection.immutable.Seq
 import scala.concurrent.duration.{Duration, FiniteDuration, MINUTES}
@@ -53,6 +53,10 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
     }
   }
 
+  def all: Action[AnyContent] = Action.async {
+    Future.successful(Ok(all_template(cache.getOrElse[AllTransactions]("all")(AllTransactions(Nil)))))
+  }
+
   def richBlocks: Action[AnyContent] = Action.async {
     val futureValRichBlocks = blockchainConnector.getBlocks
     val futSeqValidated = futureValRichBlocks.flatMap( enrichBlocks )
@@ -60,7 +64,11 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
       val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
       valid match {
         case Nil => Ok(rich_blocks_empty_template(""))
-        case l => Ok(rich_blocks_template("", RichBlocks(l), counter))
+        case l => {
+          val all = l.flatMap(_.block.tx)
+          cache.set("all", AllTransactions(all))
+          Ok(rich_blocks_template("", RichBlocks(l), counter))
+        }
       }
     }
   }
@@ -87,7 +95,6 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
           response map {
             case Valid(jb) =>
               val rbe = RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock)
-              logger.info(s"fees for second transaction = ${rbe.block.tx.drop(1).headOption.map(_.fees)}")
               cache.set(jsonBlockEntry.height.toString, rbe)
               logger.info(s"added to cache block ${jsonBlockEntry.height}")
               Valid(rbe)
