@@ -1,14 +1,17 @@
-@import _root_.model.AllTransactions
-@(all: AllTransactions)
+@import _root_.model.FeeResult
+@(feeResult: FeeResult)
 
 @main("Block reader") {
 
  <head> <meta http-equiv="refresh" content="30" /> </head>
 
- <h1>Top block: @{all.topBlock}</h1>
- <h1>Bottom block: @{all.bottomBlock}</h1>
- <h1>Total: @{all.all.size}</h1>
- <h1>Total median fee pre byte: @{all.totalMedian}</h1>
- <h1>Total median fee per byte last 24h: @{all.totalMedianLast24h}</h1>
+ <h1>Top block: @{feeResult.topBlock}</h1>
+ <h1>Bottom block: @{feeResult.bottomBlock}</h1>
+ <h1>Total: @{feeResult.totalTransactions}</h1>
+ <h1>Total median fee per byte: @{feeResult.totalMedianFeePerByte} satoshis</h1>
+ <h1>Total median fee per byte last 24h: @{feeResult.medianFeePerByteLast24h} satoshis</h1>
+ <h1>Total median fee per byte last hour: @{feeResult.medianFeePerByteLast1h} satoshis</h1>
+ <h1>Fee for 226 bytes message: @{feeResult.feePer226BytesSatoshis} satoshis</h1>
+ <h1>Fee for 226 bytes message in USD (for $10000/BTC): $@{feeResult.feePer226BytesUsd}</h1>
 
 }

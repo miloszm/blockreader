@@ -54,7 +54,8 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
   }
 
   def all: Action[AnyContent] = Action.async {
-    Future.successful(Ok(all_template(cache.getOrElse[AllTransactions]("all")(AllTransactions(Nil)))))
+    val feeResult = cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty)
+    Future.successful(Ok(all_template(feeResult)))
   }
 
   def richBlocks: Action[AnyContent] = Action.async {
@@ -66,7 +67,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
         case Nil => Ok(rich_blocks_empty_template(""))
         case l => {
           val all = l.flatMap(_.block.tx)
-          cache.set("all", AllTransactions(all))
+          cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all)))
           Ok(rich_blocks_template("", RichBlocks(l), counter))
         }
       }

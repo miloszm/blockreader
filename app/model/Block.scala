@@ -6,6 +6,8 @@ import cats.Semigroup
 import connectors.BlockchainConnector
 import org.joda.time.LocalTime
 
+import scala.math.BigDecimal.RoundingMode
+
 case class JsonBlocks(blocks: Seq[JsonBlockEntry]) {
   def toBlocks = Blocks(this.blocks.map(_.toBlockEntry))
   def height = this.blocks.map(_.height).max
@@ -153,5 +155,15 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
   def totalMedianLast24h: Long = {
     val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
     StatCalc.median(all.filter(now - _.time*1000 < 24*3600*1000).map(_.feePerByte))
+  }
+  def totalMedianLastHour: Long = {
+    val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
+    StatCalc.median(all.filter(now - _.time*1000 < 3600*1000).map(_.feePerByte))
+  }
+  def feeFor226Bytes: Long = {
+    totalMedianLastHour * 226
+  }
+  def feeFor226InUsd: BigDecimal = {
+    (BigDecimal(feeFor226Bytes)*BigDecimal(0.0001)).setScale(2, RoundingMode.FLOOR)
   }
 }
