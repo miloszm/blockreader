@@ -9,7 +9,7 @@ case class FeeResult
   totalMedianFeePerByte: Long,
   medianFeePerByteLast24h: Long,
   medianFeePerByteLast1h: Long,
-  last2hPeriods: Seq[Long],
+  last2hPeriods: Seq[(String,Long)],
   feePer226BytesSatoshis: Long,
   feePer226BytesUsd: BigDecimal
 )

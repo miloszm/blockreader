@@ -159,10 +159,15 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
   def totalMedianLastHour: Long = {
     StatCalc.median(all.filter(now - _.time*1000 < 3600*1000).map(_.feePerByte))
   }
-  def medianLast12Periods2hEach: Seq[Long] =
-    (24 to 2 by -2).map{i =>
-      StatCalc.median(all.filter(t => (now - t.time*1000 < i*3600*1000) && (now - t.time*1000 > (i-2)*3600*1000)).map(_.feePerByte))
+  def medianLast12Periods2hEach: Seq[(String,Long)] = {
+    val currentHour = LocalDateTime.now.getHour
+    (24 to 2 by -2).map { i =>
+      (
+        s"${(currentHour + 24 - i) % 24}-${(currentHour + 24 - i + 2) % 24}",
+        StatCalc.median(all.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.feePerByte))
+      )
     }
+  }
   def feeFor226Bytes: Long = {
     totalMedianLastHour * 226
   }
