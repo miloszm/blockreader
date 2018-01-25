@@ -149,17 +149,20 @@ object StatCalc {
 }
 
 case class AllTransactions(all: Seq[FeeOnlyTransaction]){
+  def now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
   def topBlock: Long = if (all.isEmpty) 0L else all.map(_.height).max
   def bottomBlock: Long = if (all.isEmpty) 0L else all.map(_.height).min
   def totalMedian: Long = StatCalc.median(all.map(_.feePerByte))
   def totalMedianLast24h: Long = {
-    val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
     StatCalc.median(all.filter(now - _.time*1000 < 24*3600*1000).map(_.feePerByte))
   }
   def totalMedianLastHour: Long = {
-    val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
     StatCalc.median(all.filter(now - _.time*1000 < 3600*1000).map(_.feePerByte))
   }
+  def medianLast12Periods2hEach: Seq[Long] =
+    (24 to 2 by -2).map{i =>
+      StatCalc.median(all.filter(t => (now - t.time*1000 < i*3600*1000) && (now - t.time*1000 > (i-2)*3600*1000)).map(_.feePerByte))
+    }
   def feeFor226Bytes: Long = {
     totalMedianLastHour * 226
   }

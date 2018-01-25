@@ -11,6 +11,7 @@
  <h1>Total median fee per byte: @{feeResult.totalMedianFeePerByte} satoshis</h1>
  <h1>Total median fee per byte last 24h: @{feeResult.medianFeePerByteLast24h} satoshis</h1>
  <h1>Total median fee per byte last hour: @{feeResult.medianFeePerByteLast1h} satoshis</h1>
+ <h1>Last 2h periods: @{feeResult.last2hPeriods.map(_.toString).zipWithIndex.map(_.swap).mkString(" ")}</h1>
  <h1>Fee for 226 bytes message: @{feeResult.feePer226BytesSatoshis} satoshis</h1>
  <h1>Fee for 226 bytes message in USD (for $10000/BTC): $@{feeResult.feePer226BytesUsd}</h1>
 

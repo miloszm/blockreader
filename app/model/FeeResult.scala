@@ -9,6 +9,7 @@ case class FeeResult
   totalMedianFeePerByte: Long,
   medianFeePerByteLast24h: Long,
   medianFeePerByteLast1h: Long,
+  last2hPeriods: Seq[Long],
   feePer226BytesSatoshis: Long,
   feePer226BytesUsd: BigDecimal
 )
@@ -22,8 +23,9 @@ object FeeResult {
       all.totalMedian,
       all.totalMedianLast24h,
       all.totalMedianLastHour,
+      all.medianLast12Periods2hEach,
       all.feeFor226Bytes,
       all.feeFor226InUsd
     )
-  def empty = FeeResult(0,0,0,0,0,0,0,0)
+  def empty = FeeResult(0,0,0,0,0,0,Nil,0,0)
 }
