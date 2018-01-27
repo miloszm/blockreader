@@ -9,7 +9,7 @@ import akka.stream.ActorMaterializer
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import connectors.BlockchainConnector.toEpochMilli
-import model._
+import model.{BlockReaderError, _}
 import play.api.Logger
 import play.api.Play.current
 import play.api.cache.CacheApi
@@ -17,9 +17,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WS
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, duration}
-import scala.concurrent.duration.{Duration, HOURS}
-import model.BlockReaderError
+import scala.concurrent.Future
 
 case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
@@ -34,6 +32,8 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   implicit val formatBlockEntry = Json.format[JsonBlockEntry]
   implicit val formatBlocks = Json.format[JsonBlocks]
   implicit val formatLatestBlock = Json.format[LatestBlock]
+  implicit val formatUsdPrice = Json.format[UsdPrice]
+  implicit val formatPriceTicker = Json.format[PriceTicker]
 
   def getLatestBlock: Future[Int] = {
     val request = WS.url(s"https://blockchain.info/latestblock")
@@ -43,6 +43,16 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
       logger.info(s"latest block is ${latestBlock.height}")
       Valid[LatestBlock](latestBlock)
     }.map(x => x.map(_.height).getOrElse(-1))
+  }
+
+  def getUsdPrice: Future[BigDecimal] = {
+    val request = WS.url(s"https://blockchain.info/ticker")
+    val futureResponse = request.get
+    futureResponse.map { response =>
+      val priceTicker = response.json.validate[PriceTicker].get
+      logger.info(s"latest price is ${priceTicker.`USD`.`15m`}")
+      Valid[PriceTicker](priceTicker)
+    }.map(x => x.map(_.`USD`.`15m`).getOrElse(0))
   }
 
   def getBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {

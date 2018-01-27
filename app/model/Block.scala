@@ -166,5 +166,13 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
     }
   }
   def feeFor226Bytes: Long = totalMedianLast2h * 226
-  def feeFor226InUsd: BigDecimal = (BigDecimal(feeFor226Bytes)*BigDecimal(0.0001)).setScale(2, RoundingMode.FLOOR)
+  def feeFor226InUsd(usdPrice: BigDecimal): BigDecimal = {
+    val priceOfSatoshi = usdPrice / BigDecimal(100000000)
+    (BigDecimal(feeFor226Bytes)*priceOfSatoshi).setScale(4, RoundingMode.FLOOR)
+  }
 }
+
+case class PriceTicker( `USD`: UsdPrice)
+
+case class UsdPrice( `15m`: BigDecimal )
+

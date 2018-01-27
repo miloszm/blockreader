@@ -1,27 +1,24 @@
 package controllers
 
-import java.util
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject._
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
-import akka.stream.{ActorMaterializer, ThrottleMode}
 import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.{ActorMaterializer, ThrottleMode}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import connectors.{AkkaHttpClient, BlockchainConnector}
 import model._
 import play.api.Logger
 import play.api.cache.CacheApi
-import play.api.http.Status.NO_CONTENT
 import play.api.mvc._
 import views.html._
 
 import scala.collection.immutable.Seq
-import scala.concurrent.duration.{Duration, FiniteDuration, MINUTES}
-import scala.concurrent.{ExecutionContext, Future, duration}
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(implicit exec: ExecutionContext) extends Controller {
@@ -59,18 +56,22 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
   }
 
   def richBlocks: Action[AnyContent] = Action.async {
-    val futureValRichBlocks = blockchainConnector.getBlocks
-    val futSeqValidated = futureValRichBlocks.flatMap( enrichBlocks )
-    futSeqValidated.map { seqValidated =>
-      val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
-      valid match {
-        case Nil => Ok(rich_blocks_empty_template(""))
-        case l => {
-          val all = l.flatMap(_.block.tx)
-          cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all),l.exists(_.block.isEmpty)))
-          Ok(rich_blocks_template("", RichBlocks(l), counter))
+    val futureUsdPrice = blockchainConnector.getUsdPrice
+    futureUsdPrice.flatMap { usdPrice => {
+      val futureValRichBlocks = blockchainConnector.getBlocks
+      val futSeqValidated = futureValRichBlocks.flatMap(enrichBlocks)
+      futSeqValidated.map { seqValidated =>
+        val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
+        valid match {
+          case Nil => Ok(rich_blocks_empty_template(""))
+          case l => {
+            val all = l.flatMap(_.block.tx)
+            cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all), l.exists(_.block.isEmpty), usdPrice))
+            Ok(rich_blocks_template("", RichBlocks(l), counter))
+          }
         }
       }
+    }
     }
   }
 
@@ -109,7 +110,9 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
 
     val richBlockEntries: Future[Seq[Valid[RichBlockEntry]]] =
       richBlockEntrySource.runWith(Sink.seq)
-    logger.info(s"sequence of ${bl.blocks.size} block requests")
+    if (bl.blocks.nonEmpty) {
+      logger.info(s"sequence of ${bl.blocks.size} block requests")
+    }
     richBlockEntries
   }
 }
