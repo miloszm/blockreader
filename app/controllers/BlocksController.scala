@@ -55,7 +55,11 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
     Future.successful(Ok(all_template(feeResult)))
   }
 
-  def richBlocks: Action[AnyContent] = Action.async {
+//  def richBlocks: Action[AnyContent] = Action.async {
+//    fetchBlocksUpdateFeeResultInCache()
+//  }
+
+  def fetchBlocksUpdateFeeResultInCache(): Future[Unit/*Result*/] = {
     val futureUsdPrice = blockchainConnector.getUsdPrice
     futureUsdPrice.flatMap { usdPrice => {
       val futureValRichBlocks = blockchainConnector.getBlocks
@@ -65,12 +69,12 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
         valid match {
           case Nil => {
             cache.set("feeresult", cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty).copy(usdPrice = usdPrice))
-            Ok(rich_blocks_empty_template(""))
+//            Ok(rich_blocks_empty_template(""))
           }
           case l => {
             val all = l.flatMap(_.block.tx)
             cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all), l.exists(_.block.isEmpty), usdPrice))
-            Ok(rich_blocks_template("", RichBlocks(l), counter))
+//            Ok(rich_blocks_template("", RichBlocks(l), counter))
           }
         }
       }

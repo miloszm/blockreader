@@ -8,7 +8,7 @@ GET     /                           controllers.HomeController.index
 GET     /count                      controllers.CountController.count
 # An example controller showing how to write asynchronous code
 GET     /blocks                     controllers.BlocksController.blocks
-GET     /richblocks                 controllers.BlocksController.richBlocks
+#GET     /richblocks                 controllers.BlocksController.richBlocks
 GET     /all                        controllers.BlocksController.all
 GET     /genesis                    controllers.BlocksController.genesis
 GET     /block/:hash                controllers.BlocksController.block(hash: String)
