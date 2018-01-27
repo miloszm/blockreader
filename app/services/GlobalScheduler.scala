@@ -35,8 +35,9 @@ class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycl
     implicit val timeout = Timeout(30 minutes)
     val fut = blockPoller ? "a"
     Await.result[Any](fut, Duration(30, duration.MINUTES))
+    blocksController.system.scheduler.scheduleOnce(30.seconds)(askPollerAndWait)
   }
-  blocksController.system.scheduler.schedule(10.seconds, 30.seconds)(askPollerAndWait)
+  blocksController.system.scheduler.scheduleOnce(10.seconds)(askPollerAndWait)
 
 }
 
