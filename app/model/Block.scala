@@ -150,15 +150,12 @@ object StatCalc {
 
 case class AllTransactions(all: Seq[FeeOnlyTransaction]){
   def now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
-  def topBlock: Long = if (all.isEmpty) 0L else all.map(_.height).max
-  def bottomBlock: Long = if (all.isEmpty) 0L else all.map(_.height).min
-  def totalMedian: Long = StatCalc.median(all.map(_.feePerByte))
-  def totalMedianLast24h: Long = {
-    StatCalc.median(all.filter(now - _.time*1000 < 24*3600*1000).map(_.feePerByte))
-  }
-  def totalMedianLastHour: Long = {
-    StatCalc.median(all.filter(now - _.time*1000 < 3600*1000).map(_.feePerByte))
-  }
+  val last24h: Seq[FeeOnlyTransaction] = all.filter(now - _.time*1000 < 24*3600*1000)
+  def topBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).max
+  def bottomBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).min
+  def transactionsLast24h = last24h.size
+  def totalMedianLast24h: Long = StatCalc.median(last24h.map(_.feePerByte))
+  def totalMedianLast2h: Long = StatCalc.median(all.filter(now - _.time*1000 < 2*3600*1000).map(_.feePerByte))
   def medianLast12Periods2hEach: Seq[(String,Long)] = {
     val currentHour = LocalDateTime.now.getHour
     (24 to 2 by -2).map { i =>
@@ -168,10 +165,6 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
       )
     }
   }
-  def feeFor226Bytes: Long = {
-    totalMedianLastHour * 226
-  }
-  def feeFor226InUsd: BigDecimal = {
-    (BigDecimal(feeFor226Bytes)*BigDecimal(0.0001)).setScale(2, RoundingMode.FLOOR)
-  }
+  def feeFor226Bytes: Long = totalMedianLast2h * 226
+  def feeFor226InUsd: BigDecimal = (BigDecimal(feeFor226Bytes)*BigDecimal(0.0001)).setScale(2, RoundingMode.FLOOR)
 }

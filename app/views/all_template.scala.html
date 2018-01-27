@@ -7,12 +7,11 @@
 
  <h1>Top block: @{feeResult.topBlock}</h1>
  <h1>Bottom block: @{feeResult.bottomBlock}</h1>
- <h1>Total: @{feeResult.totalTransactions}</h1>
- <h1>Total median fee per byte: @{feeResult.totalMedianFeePerByte} satoshis</h1>
- <h1>Total median fee per byte last 24h: @{feeResult.medianFeePerByteLast24h} satoshis</h1>
- <h1>Total median fee per byte last hour: @{feeResult.medianFeePerByteLast1h} satoshis</h1>
+ <h1>Transactions last 24h: @{feeResult.transactionsLast24h}</h1>
+ <h1>Median fee per byte last 24h: @{feeResult.medianFeePerByteLast24h} satoshis</h1>
+ <h1>Median fee per byte last 2h: @{feeResult.medianFeePerByteLast2h} satoshis</h1>
  <h1>Last 2h periods: @{feeResult.last2hPeriods.map(_.toString()).mkString(" ")}</h1>
- <h1>Fee for 226 bytes message: @{feeResult.feePer226BytesSatoshis} satoshis</h1>
- <h1>Fee for 226 bytes message in USD (for $10000/BTC): $@{feeResult.feePer226BytesUsd}</h1>
+ <h1>Fee for 226 bytes message (for last 2h): @{feeResult.feePer226BytesSatoshis} satoshis</h1>
+ <h1>Fee for 226 bytes message in USD (for $10000/BTC, last 2h): $@{feeResult.feePer226BytesUsd}</h1>
 
 }
