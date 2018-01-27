@@ -47,25 +47,21 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
   def getBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
     getLatestBlock.flatMap { latestBlock =>
-      cache.get[JsonBlocks](s"blocksummary${latestBlock.toString}") match {
-        case Some(blocks) =>
-          logger.info(s"blocks summary from cache for ${blocks.signature}")
-          Future.successful(Valid(blocks))
-        case _ => {
-          val d1 = doGetBlocks(LocalDateTime.now)
-          val d2 = doGetBlocks(LocalDate.now.atStartOfDay().minusSeconds(2))
-          val futValBlocks = for {
-            v1 <- d1
-            v2 <- d2
-          } yield v1.combine(v2)(BlockReaderError, JsonBlocks)
-          futValBlocks.map { valBlocks =>
-            valBlocks.map{ blocks =>
-              val sortedBlocks = JsonBlocks(blocks.blocks.sortWith((a,b) => a.time >= b.time))
-              logger.info(s"caching new block summary for height ${blocks.height.toString}")
-              cache.remove(s"blocksummary${(latestBlock-1).toString}")
-              cache.set(s"blocksummary${blocks.height.toString}", sortedBlocks, Duration(20, duration.MINUTES))
-              sortedBlocks
-            }
+      val currentFeeResult = cache.get("feeresult").getOrElse(FeeResult.empty)
+      if (currentFeeResult.topBlock == latestBlock && !currentFeeResult.emptyBlocksExist){
+        Future.successful(Valid(JsonBlocks(Nil)))
+      }
+      else {
+        val d1 = doGetBlocks(LocalDateTime.now)
+        val d2 = doGetBlocks(LocalDate.now.atStartOfDay().minusSeconds(2))
+        val futValBlocks = for {
+          v1 <- d1
+          v2 <- d2
+        } yield v1.combine(v2)(BlockReaderError, JsonBlocks)
+        futValBlocks.map { valBlocks =>
+          valBlocks.map { blocks =>
+            val sortedBlocks = JsonBlocks(blocks.blocks.sortWith((a, b) => a.time >= b.time))
+            sortedBlocks
           }
         }
       }

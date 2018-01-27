@@ -67,7 +67,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
         case Nil => Ok(rich_blocks_empty_template(""))
         case l => {
           val all = l.flatMap(_.block.tx)
-          cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all)))
+          cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all),l.exists(_.block.isEmpty)))
           Ok(rich_blocks_template("", RichBlocks(l), counter))
         }
       }
