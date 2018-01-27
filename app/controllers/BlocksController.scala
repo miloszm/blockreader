@@ -63,7 +63,10 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
       futSeqValidated.map { seqValidated =>
         val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
         valid match {
-          case Nil => Ok(rich_blocks_empty_template(""))
+          case Nil => {
+            cache.set("feeresult", cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty).copy(usdPrice = usdPrice))
+            Ok(rich_blocks_empty_template(""))
+          }
           case l => {
             val all = l.flatMap(_.block.tx)
             cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all), l.exists(_.block.isEmpty), usdPrice))
