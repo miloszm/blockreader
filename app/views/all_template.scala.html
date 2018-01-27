@@ -5,13 +5,43 @@
 
  <head> <meta http-equiv="refresh" content="30" /> </head>
 
+ <style>
+ table {
+    border-collapse: collapse;
+ }
+
+ table, td, th {
+    border: 1px solid black;
+ }
+
+ td, th {
+     text-align: center;
+ }
+ </style>
+
  <h1>Top block: @{feeResult.topBlock}</h1>
  <h1>Bottom block: @{feeResult.bottomBlock}</h1>
  <h1>Transactions last 24h: @{feeResult.transactionsLast24h}</h1>
  <h1>Median fee per byte last 24h: @{feeResult.medianFeePerByteLast24h} satoshis</h1>
  <h1>Median fee per byte last 2h: @{feeResult.medianFeePerByteLast2h} satoshis</h1>
- <h1>Last 2h periods: @{feeResult.last2hPeriods.map(_.toString()).mkString(" ")}</h1>
  <h1>Fee for 226 bytes message (for last 2h): @{feeResult.feePer226BytesSatoshis} satoshis</h1>
  <h1>Fee for 226 bytes message in USD (for $@{feeResult.usdPrice}/BTC, last 2h): $@{feeResult.feePer226BytesUsd}</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>period</th>
+                <th>median fee in satoshis per byte</th>
+            </tr>
+        </thead>
+        <tbody>
+        @for((period, fee) <- feeResult.last2hPeriods) {
+            <tr>
+                <td>@period</td>
+                <td>@fee.toString</td>
+            </tr>
+        }
+        </tbody>
+    </table>
 
 }

@@ -160,7 +160,7 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
     val currentHour = LocalDateTime.now.getHour
     (24 to 2 by -2).map { i =>
       (
-        s"${(currentHour + 24 - i) % 24}-${(currentHour + 24 - i + 2) % 24}",
+        s"${(currentHour + 24 - i) % 24}:00-${(currentHour + 24 - i + 2) % 24}:00",
         StatCalc.median(all.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.feePerByte))
       )
     }
