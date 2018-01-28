@@ -19,6 +19,7 @@
  }
  </style>
 
+ <h3>Median fee for 226 bytes transaction in USD (at $@{feeResult.usdPrice}/BTC, last 2h, processed within 0-1 blocks):</h3>
  <h1>$@{feeResult.feePer226BytesUsd}</h1>
 
  <h3>Blocks in last 24h: @{feeResult.topBlock}-@{feeResult.bottomBlock}</h3>
@@ -29,7 +30,6 @@
  <h3>Median fee per byte last 2h: @{feeResult.medianFeePerByteLast2h} satoshis</h3>
  <h3>Median fee per byte last 2h (0-1 blocks): @{feeResult.medianFeePerByteLast2h01Blocks} satoshis</h3>
  <h3>Fee for 226 bytes message (last 2h, 0-1 blocks): @{feeResult.feePer226BytesSatoshis} satoshis</h3>
- <h3>Fee for 226 bytes message in USD (for $@{feeResult.usdPrice}/BTC, last 2h, 0-1 blocks): $@{feeResult.feePer226BytesUsd}</h3>
 
     <table>
         <thead>
