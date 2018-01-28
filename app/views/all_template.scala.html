@@ -22,20 +22,23 @@
  <h3>Median fee for a 226 bytes transaction in USD (at $@{feeResult.usdPrice}/BTC, last 2h, processed within 0-1 blocks):</h3>
  <h1>$@{feeResult.feePer226BytesUsd}</h1>
 
- <h3>Last 24h:</h3>
- <h3>Blocks: @{feeResult.topBlock}-@{feeResult.bottomBlock}</h3>
- <h3>Transactions: @{feeResult.transactionsLast24h}</h3>
- <h3>Transactions (0-1 blocks): @{feeResult.transactionsLast24h01Blocks}</h3>
- <h3>Median fee per byte @{feeResult.medianFeePerByteLast24h} satoshis</h3>
- <h3>Median fee per byte (0-1 blocks) @{feeResult.medianFeePerByteLast24h01Blocks} satoshis</h3>
+ <h3>Last 24h</h3>
+    <ul>
+         <li>Blocks: @{feeResult.topBlock}-@{feeResult.bottomBlock}</li>
+         <li>Transactions: @{feeResult.transactionsLast24h}</li>
+         <li>Transactions (0-1 blocks): @{feeResult.transactionsLast24h01Blocks}</li>
+         <li>Median fee per byte: @{feeResult.medianFeePerByteLast24h} satoshis</li>
+         <li>Median fee per byte (0-1 blocks): @{feeResult.medianFeePerByteLast24h01Blocks} satoshis</li>
+    </ul>
 
- <h3>Last 2h:</h3>
- <h3>Blocks: @{feeResult.topBlock}-@{feeResult.bottomBlock2h}</h3>
- <h3>Transactions: @{feeResult.transactionsLast2h}</h3>
- <h3>Transactions (0-1 blocks): @{feeResult.transactionsLast2h01Blocks}</h3>
- <h3>Median fee per byte last 2h: @{feeResult.medianFeePerByteLast2h} satoshis</h3>
- <h3>Median fee per byte last 2h (0-1 blocks): @{feeResult.medianFeePerByteLast2h01Blocks} satoshis</h3>
- <h3>Fee for 226 bytes message (last 2h, 0-1 blocks): @{feeResult.feePer226BytesSatoshis} satoshis</h3>
+ <h3>Last 2h</h3>
+    <ul>
+         <li>Blocks: @{feeResult.topBlock}-@{feeResult.bottomBlock2h}</li>
+         <li>Transactions: @{feeResult.transactionsLast2h}</li>
+         <li>Transactions (0-1 blocks): @{feeResult.transactionsLast2h01Blocks}</li>
+         <li>Median fee per byte last 2h: @{feeResult.medianFeePerByteLast2h} satoshis</li>
+         <li>Median fee per byte last 2h (0-1 blocks): @{feeResult.medianFeePerByteLast2h01Blocks} satoshis</li>
+    </ul>
 
     <table>
         <thead>
