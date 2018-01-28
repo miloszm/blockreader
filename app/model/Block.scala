@@ -23,7 +23,7 @@ case class JsonBlockEntry(height: Int, hash: String, time: Long) {
 }
 
 case class JsonBlock(fee: Long, height: Long, n_tx: Int, tx: Seq[JsonTransaction], time: Long) {
-  def toBlock = Block(fee, height, n_tx, tx.zipWithIndex.map{case (transaction, index) => transaction.toFeeOnlyTransaction(height, index)}, time)
+  def toBlock = Block(fee, height, n_tx, tx.zipWithIndex.map{case (transaction, index) => transaction.toFeeOnlyTransaction(height, index, time)}, time)
 }
 
 case class JsonOutput(value: Option[Long]) {
@@ -48,11 +48,11 @@ case class JsonTransaction(
   time: Long
 ) {
   def toTransaction = Transaction(inputs.flatMap(_.toInput), out.flatMap(_.toOutput), tx_index, hash, size, time)
-  def toFeeOnlyTransaction(height: Long, index: Int) = {
+  def toFeeOnlyTransaction(height: Long, index: Int, blockTime: Long) = {
     val sumInputs: Long = inputs.flatMap(_.toInput).map(_.value).sum
     val sumOutputs: Long = out.flatMap(_.toOutput).map(_.value).sum
     val fees = sumInputs - sumOutputs
-    FeeOnlyTransaction(height, index, fees, size, time)
+    FeeOnlyTransaction(height, index, fees, size, time, blockTime)
   }
 }
 
@@ -70,9 +70,9 @@ case class Transaction(inputs: Seq[Input], outputs: Seq[Output], index: Long, ha
   def ageInBlocks(t: Long): Long = age(t) / 600
 }
 
-case class FeeOnlyTransaction(height: Long, index: Int, fees: Long, size: Int, time: Long){
-  def age(t: Long): Long = t - time
-  def ageInBlocks(t: Long): Long = age(t) / 600
+case class FeeOnlyTransaction(height: Long, index: Int, fees: Long, size: Int, time: Long, blockTime: Long){
+  def age: Long = blockTime - time
+  def ageInBlocks: Long = age / 600
   def feePerByte: Long = if (size == 0 || fees < 0) 0 else fees / size
 }
 
@@ -108,7 +108,7 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
   def totalAvgFeePerByteNoWait: Long = {
     val blcks = blocks.map(_.block).filterNot(_.isEmpty)
     val notWaitingTransactions = blcks.flatMap { block =>
-      block.tx.filter(_.ageInBlocks(block.time) == 0)
+      block.tx.filter(_.ageInBlocks == 0)
     }
     StatCalc.avg(notWaitingTransactions.map(_.feePerByte))
   }
@@ -116,7 +116,7 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
     val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
     val blcks = blocks.map(_.block).filterNot(_.isEmpty).filter(now - _.time*1000 < 24*3600*1000)
     val notWaitingTransactions = blcks.flatMap { block =>
-      block.tx.filter(_.ageInBlocks(block.time) == 0)
+      block.tx.filter(_.ageInBlocks == 0)
     }
     StatCalc.median(notWaitingTransactions.map(_.feePerByte))
   }
@@ -124,7 +124,7 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
     val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
     val blcks = blocks.map(_.block).filterNot(_.isEmpty).filter(now - _.time*1000 < 2*3600*1000)
     val notWaitingTransactions = blcks.flatMap { block =>
-      block.tx.filter(_.ageInBlocks(block.time) == 0)
+      block.tx.filter(_.ageInBlocks == 0)
     }
     StatCalc.median(notWaitingTransactions.map(_.feePerByte))
   }
@@ -151,21 +151,27 @@ object StatCalc {
 case class AllTransactions(all: Seq[FeeOnlyTransaction]){
   def now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
   val last24h: Seq[FeeOnlyTransaction] = all.filter(now - _.time*1000 < 24*3600*1000)
+  val last24h01Blocks = last24h.filter(_.ageInBlocks < 2)
+  val last2h: Seq[FeeOnlyTransaction] = all.filter(now - _.time*1000 < 2*3600*1000)
+  val last2h01Blocks = last2h.filter(_.ageInBlocks < 2)
   def topBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).max
   def bottomBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).min
   def transactionsLast24h = last24h.size
+  def transactionsLast24h01Blocks = last24h01Blocks.size
   def totalMedianLast24h: Long = StatCalc.median(last24h.map(_.feePerByte))
-  def totalMedianLast2h: Long = StatCalc.median(all.filter(now - _.time*1000 < 2*3600*1000).map(_.feePerByte))
+  def totalMedianLast24h01Blocks: Long = StatCalc.median(last24h01Blocks.map(_.feePerByte))
+  def totalMedianLast2h: Long = StatCalc.median(last2h.map(_.feePerByte))
+  def totalMedianLast2h01Blocks: Long = StatCalc.median(last2h01Blocks.map(_.feePerByte))
   def medianLast12Periods2hEach: Seq[(String,Long)] = {
     val currentHour = LocalDateTime.now.getHour
     (24 to 2 by -2).map { i =>
       (
         s"${(currentHour + 24 - i) % 24}:00-${(currentHour + 24 - i + 2) % 24}:00",
-        StatCalc.median(all.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.feePerByte))
+        StatCalc.median(last24h01Blocks.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.feePerByte))
       )
     }
   }
-  def feeFor226Bytes: Long = totalMedianLast2h * 226
+  def feeFor226Bytes: Long = totalMedianLast2h01Blocks * 226
   def feeFor226InUsd(usdPrice: BigDecimal): BigDecimal = {
     val priceOfSatoshi = usdPrice / BigDecimal(100000000)
     (BigDecimal(feeFor226Bytes)*priceOfSatoshi).setScale(4, RoundingMode.FLOOR)
