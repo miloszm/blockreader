@@ -156,8 +156,11 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
   val last2h01Blocks = last2h.filter(_.ageInBlocks < 2)
   def topBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).max
   def bottomBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).min
+  def bottomBlock2h: Long = if (all.isEmpty) 0L else last2h.map(_.height).min
   def transactionsLast24h = last24h.size
   def transactionsLast24h01Blocks = last24h01Blocks.size
+  def transactionsLast2h = last2h.size
+  def transactionsLast2h01Blocks = last2h01Blocks.size
   def totalMedianLast24h: Long = StatCalc.median(last24h.map(_.feePerByte))
   def totalMedianLast24h01Blocks: Long = StatCalc.median(last24h01Blocks.map(_.feePerByte))
   def totalMedianLast2h: Long = StatCalc.median(last2h.map(_.feePerByte))
