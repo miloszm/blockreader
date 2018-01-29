@@ -10,7 +10,7 @@ GET     /count                      controllers.CountController.count
 GET     /blocks                     controllers.BlocksController.blocks
 #GET     /richblocks                 controllers.BlocksController.richBlocks
 GET     /all                        controllers.BlocksController.all
-GET     /fees                       controllers.BlocksController.all
+GET     /fees                       controllers.BlocksController.fees
 GET     /genesis                    controllers.BlocksController.genesis
 GET     /block/:hash                controllers.BlocksController.block(hash: String)
 

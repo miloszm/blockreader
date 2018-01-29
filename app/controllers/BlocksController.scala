@@ -55,6 +55,11 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
     Future.successful(Ok(all_template(feeResult)))
   }
 
+  def fees: Action[AnyContent] = Action.async {
+    val feeResult = cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty)
+    Future.successful(Ok(fees_template(feeResult)))
+  }
+
 //  def richBlocks: Action[AnyContent] = Action.async {
 //    fetchBlocksUpdateFeeResultInCache()
 //  }
