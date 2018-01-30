@@ -154,9 +154,9 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
   val last24h01Blocks = last24h.filter(_.ageInBlocks < 2)
   val last2h: Seq[FeeOnlyTransaction] = all.filter(now - _.time*1000 < 2*3600*1000)
   val last2h01Blocks = last2h.filter(_.ageInBlocks < 2)
-  def topBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).max
-  def bottomBlock: Long = if (all.isEmpty) 0L else last24h.map(_.height).min
-  def bottomBlock2h: Long = if (all.isEmpty) 0L else last2h.map(_.height).min
+  def topBlock: Long = if (last24h.isEmpty) 0L else last24h.map(_.height).max
+  def bottomBlock: Long = if (last24h.isEmpty) 0L else last24h.map(_.height).min
+  def bottomBlock2h: Long = if (last2h.isEmpty) 0L else last2h.map(_.height).min
   def transactionsLast24h = last24h.size
   def transactionsLast24h01Blocks = last24h01Blocks.size
   def transactionsLast2h = last2h.size
