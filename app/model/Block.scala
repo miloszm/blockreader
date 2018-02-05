@@ -179,6 +179,10 @@ case class AllTransactions(all: Seq[FeeOnlyTransaction]){
     val priceOfSatoshi = usdPrice / BigDecimal(100000000)
     (BigDecimal(feeFor226Bytes)*priceOfSatoshi).setScale(4, RoundingMode.FLOOR)
   }
+  def feeFor1InUsd(usdPrice: BigDecimal): BigDecimal = {
+    val priceOfSatoshi = usdPrice / BigDecimal(100000000)
+    (BigDecimal(totalMedianLast2h01Blocks)*priceOfSatoshi).setScale(4, RoundingMode.FLOOR)
+  }
 }
 
 case class PriceTicker( `USD`: UsdPrice)

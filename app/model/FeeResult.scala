@@ -16,6 +16,7 @@ case class FeeResult
   last2hPeriods: Seq[(String,Long)],
   feePer226BytesSatoshis: Long,
   feePer226BytesUsd: BigDecimal,
+  feePerByteUsd: BigDecimal,
   emptyBlocksExist: Boolean,
   usdPrice: BigDecimal
 )
@@ -37,8 +38,9 @@ object FeeResult {
       all.medianLast12Periods2hEach,
       all.feeFor226Bytes,
       all.feeFor226InUsd(usdPrice),
+      all.feeFor1InUsd(usdPrice),
       emptyExists,
       usdPrice
     )
-  def empty = FeeResult(0,0,0,0,0,0,0,0,0,0,0,Nil,0,0,true,0)
+  def empty = FeeResult(0,0,0,0,0,0,0,0,0,0,0,Nil,0,0,0,true,0)
 }
