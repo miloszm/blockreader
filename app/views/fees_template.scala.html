@@ -22,25 +22,24 @@
  </style>
 
     <div class="container">
-    <table class="table table-dark table-sm">
-        <thead>
-            <tr>
-                <th scope="col"></th>
-                <th scope="col">Median fee for a 226 byte Bitcoin transaction in USD (at $@{feeResult.usdPrice}/BTC, last 2h, confirmed within 20 minutes)</th>
-            </tr>
-        </thead>
+        <h3>Median fee for a 226 byte Bitcoin transaction in USD (at $@{feeResult.usdPrice}/BTC)</h3>
+        <h6>(last 2h, confirmed within 20 minutes)</h6>
+    </div>
+
+    <div class="container">
+    <table class="table table-dark">
         <tbody>
             <tr>
-                <td>USD</td><td>$@{feeResult.feePer226BytesUsd}</td>
+                <td>$@{feeResult.feePer226BytesUsd}</td>
             </tr>
             <tr>
-                <td>BTC</td><td>@{feeResult.feePer226BytesBtc}</td>
+                <td>@{feeResult.feePer226BytesBtc} BTC</td>
             </tr>
             <tr>
-                <td>satoshis per byte</td><td>@{feeResult.medianFeePerByteLast2h01Blocks}</td>
+                <td>@{feeResult.medianFeePerByteLast2h01Blocks} satoshis per byte</td>
             </tr>
             <tr>
-                <td>USD per byte</td><td>$@{feeResult.feePerByteUsd}</td>
+                <td>$@{feeResult.feePerByteUsd} per byte</td>
             </tr>
         </tbody>
     </table>
@@ -52,7 +51,7 @@
         <thead>
             <tr>
             <th scope="col">Blocks</th>
-            <th scope="col">Transactions</th>
+            <th scope="col">Total transactions</th>
             <th scope="col">Transactions confirmed within 20 minutes</th>
             <th scope="col">Median fee per byte</th>
             <th scope="col">Median fee per byte (confirmed within 20 minutes)</th>
@@ -76,7 +75,7 @@
             <thead>
                 <tr>
                     <th scope="col">Blocks</th>
-                    <th scope="col">Transactions</th>
+                    <th scope="col">Total transactions</th>
                     <th scope="col">Transactions confirmed within 20 minutes</th>
                     <th scope="col">Median fee per byte</th>
                     <th scope="col">Median fee per byte (confirmed within 20 minutes)</th>
@@ -100,7 +99,7 @@
         <thead>
             <tr>
                 <th scope="col">time GMT</th>
-                <th scope="col">median fee in satoshis per byte, confirmed within 20 minutes</th>
+                <th scope="col">median fee per byte in satoshis (confirmed within 20 minutes)</th>
             </tr>
         </thead>
         <tbody>

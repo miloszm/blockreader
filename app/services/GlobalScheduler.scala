@@ -37,6 +37,7 @@ class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycl
     Await.result[Any](fut, Duration(30, duration.MINUTES))
     blocksController.system.scheduler.scheduleOnce(30.seconds)(askPollerAndWait)
   }
+  // comment out to turn off
   blocksController.system.scheduler.scheduleOnce(10.seconds)(askPollerAndWait)
 
 }
