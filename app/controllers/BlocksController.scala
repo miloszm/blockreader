@@ -56,7 +56,8 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(impl
   }
 
   def fees: Action[AnyContent] = Action.async {
-    val feeResult = cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty)
+//    val feeResult = cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty)
+    val feeResult = FeeResult.fake
     Future.successful(Ok(fees_template(feeResult)))
   }
 
