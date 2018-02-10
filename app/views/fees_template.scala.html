@@ -21,21 +21,41 @@
  }
  </style>
 
- <h3>Median fee for a 226 bytes Bitcoin transaction in USD (at $@{feeResult.usdPrice}/BTC, last 2h, confirmed within 20 minutes):</h3>
- <h1>$@{feeResult.feePer226BytesUsd}</h1>
- <h3>@{feeResult.feePer226BytesBtc} BTC (@{feeResult.medianFeePerByteLast2h01Blocks} satoshis per byte)</h3>
- <h3>$@{feeResult.feePerByteUsd} per byte</h3>
-
- <div class="container">
-    <h3>Last 2h:</h3>
-    <table class="table table-dark">
+    <div class="container">
+    <table class="table table-dark table-sm">
         <thead>
             <tr>
-            <th scope="col">Blocks:</th>
-            <th scope="col">Transactions:</th>
-            <th scope="col">Transactions confirmed within 20 minutes:</th>
-            <th scope="col">Median fee per byte:</th>
-            <th scope="col">Median fee per byte (confirmed within 20 minutes):</th>
+                <th scope="col"></th>
+                <th scope="col">Median fee for a 226 bytes Bitcoin transaction in USD (at $@{feeResult.usdPrice}/BTC, last 2h, confirmed within 20 minutes)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>USD</td><td>$@{feeResult.feePer226BytesUsd}</td>
+            </tr>
+            <tr>
+                <td>BTC</td><td>@{feeResult.feePer226BytesBtc}</td>
+            </tr>
+            <tr>
+                <td>satoshis per byte</td><td>@{feeResult.medianFeePerByteLast2h01Blocks}</td>
+            </tr>
+            <tr>
+                <td>USD per byte</td><td>$@{feeResult.feePerByteUsd}</td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+
+ <div class="container">
+    <h3>Last 2h</h3>
+    <table class="table table-dark table-sm">
+        <thead>
+            <tr>
+            <th scope="col">Blocks</th>
+            <th scope="col">Transactions</th>
+            <th scope="col">Transactions confirmed within 20 minutes</th>
+            <th scope="col">Median fee per byte</th>
+            <th scope="col">Median fee per byte (confirmed within 20 minutes)</th>
             </tr>
         </thead>
         <tbody>
@@ -51,15 +71,15 @@
  </div>
 
     <div class="container">
-        <h3>Last 24h:</h3>
-        <table class="table table-dark">
+        <h3>Last 24h</h3>
+        <table class="table table-dark table-sm">
             <thead>
                 <tr>
-                    <th scope="col">Blocks:</th>
-                    <th scope="col">Transactions:</th>
-                    <th scope="col">Transactions confirmed within 20 minutes:</th>
-                    <th scope="col">Median fee per byte:</th>
-                    <th scope="col">Median fee per byte (confirmed within 20 minutes):</th>
+                    <th scope="col">Blocks</th>
+                    <th scope="col">Transactions</th>
+                    <th scope="col">Transactions confirmed within 20 minutes</th>
+                    <th scope="col">Median fee per byte</th>
+                    <th scope="col">Median fee per byte (confirmed within 20 minutes)</th>
                 </tr>
             </thead>
             <tbody>
@@ -74,11 +94,13 @@
         </table>
     </div>
 
-    <table>
+    <div class="container">
+        <h3>Last 24h by 2h</h3>
+    <table class="table table-dark table-sm">
         <thead>
             <tr>
-                <th>time GMT</th>
-                <th>median fee in satoshis per byte, confirmed within 20 minutes</th>
+                <th scope="col">time GMT</th>
+                <th scope="col">median fee in satoshis per byte, confirmed within 20 minutes</th>
             </tr>
         </thead>
         <tbody>
@@ -90,6 +112,6 @@
         }
         </tbody>
     </table>
-
+    </div>
 
 }
