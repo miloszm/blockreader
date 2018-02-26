@@ -18,6 +18,7 @@ import play.api.libs.ws.WS
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.math.BigDecimal.RoundingMode
 
 case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
@@ -51,7 +52,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
     futureResponse.map { response =>
       val priceTicker = response.json.validate[PriceTicker].get
       Valid[PriceTicker](priceTicker)
-    }.map(x => x.map(_.`USD`.`15m`).map(_.setScale(2)).getOrElse(0))
+    }.map(x => x.map(_.`USD`.`15m`).map(_.setScale(2, RoundingMode.FLOOR)).getOrElse(0))
   }
 
   def getBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
