@@ -1,6 +1,7 @@
 package connectors
 
 import java.time.{LocalDate, LocalDateTime, ZoneId}
+import javax.inject.{Inject, Singleton}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
@@ -20,12 +21,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.math.BigDecimal.RoundingMode
 
-case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
 
-  implicit val system: ActorSystem = ActorSystem("blockreader")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
-  val logger = Logger
-
+object Formats {
   implicit val formatOutput = Json.format[JsonOutput]
   implicit val formatInput = Json.format[JsonInput]
   implicit val formatTransaction = Json.format[JsonTransaction]
@@ -35,23 +32,37 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   implicit val formatLatestBlock = Json.format[LatestBlock]
   implicit val formatUsdPrice = Json.format[UsdPrice]
   implicit val formatPriceTicker = Json.format[PriceTicker]
+}
+
+@Singleton
+case class BlockchainConnector @Inject()(cache: CacheApi, httpClient: HttpClient) {
+  import Formats._
+
+  implicit val system: ActorSystem = ActorSystem("blockreader")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  val logger = Logger
 
   def getLatestBlock: Future[Int] = {
-    val request = WS.url(s"https://blockchain.info/latestblock")
-    val futureResponse = request.get
-    futureResponse.map { response =>
-      val latestBlock = response.json.validate[LatestBlock].get
-      logger.info(s"latest block is ${latestBlock.height}")
-      Valid[LatestBlock](latestBlock)
+    val request = httpClient.get(s"https://blockchain.info/latestblock")
+    val futureResponse = request
+    futureResponse.flatMap { response =>
+      val jsonResponse = Unmarshal(response.entity).to[String]
+      jsonResponse.map{string =>
+        val latestBlockOpt = Json.parse(string).validate[LatestBlock].asOpt
+        logger.info(s"latest block is ${latestBlockOpt.map(_.height)}")
+        latestBlockOpt
+      }
     }.map(x => x.map(_.height).getOrElse(-1))
   }
 
   def getUsdPrice: Future[BigDecimal] = {
-    val request = WS.url(s"https://blockchain.info/ticker")
-    val futureResponse = request.get
-    futureResponse.map { response =>
-      val priceTicker = response.json.validate[PriceTicker].get
-      Valid[PriceTicker](priceTicker)
+    val request = httpClient.get(s"https://blockchain.info/ticker")
+    val futureResponse = request
+    futureResponse.flatMap { response =>
+      val jsonResponse = Unmarshal(response.entity).to[String]
+      jsonResponse.map{string =>
+        Json.parse(string).validate[PriceTicker].asOpt
+      }
     }.map(x => x.map(_.`USD`.`15m`).map(_.setScale(2, RoundingMode.FLOOR)).getOrElse(0))
   }
 

@@ -7,6 +7,7 @@ import akka.actor.{Actor, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import controllers.BlocksController
+import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 
 import scala.concurrent.{Await, duration}
@@ -16,9 +17,12 @@ import scala.concurrent.duration._
 @Singleton
 class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycle, blocksController: BlocksController) {
 
+  val logger = Logger
+
   class BlockPoller extends Actor {
     override def receive: Actor.Receive = {
       case _:String => {
+        logger.info("scheduled block fetch")
         val fut = blocksController.fetchBlocksUpdateFeeResultInCache()
         Await.result[Unit](fut, Duration(30, duration.MINUTES))
         sender ! "answer"

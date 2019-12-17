@@ -21,12 +21,12 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi)(implicit exec: ExecutionContext) extends Controller {
+class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, blockchainConnector: BlockchainConnector)(implicit exec: ExecutionContext) extends Controller {
 
   implicit val system = ActorSystem("blockreader")
   implicit val materializer = ActorMaterializer()
 
-  val blockchainConnector = BlockchainConnector(cache, AkkaHttpClient)
+//  val blockchainConnector = BlockchainConnector(cache, AkkaHttpClient)
   val logger = Logger
   val count = new AtomicLong(0L)
   def counter = count.incrementAndGet()
