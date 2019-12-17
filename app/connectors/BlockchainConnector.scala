@@ -98,7 +98,7 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
               Invalid[BlockReaderError](BlockReaderError(1, e.getMessage))
           }
         case status =>
-          logger.info(s"failure in getBlocks - ${status.toString}")
+          logger.info(s"failure in getBlocks for $dateTime - ${status.toString}")
           Future.successful(Invalid[BlockReaderError](BlockReaderError(1, status.toString())))
       }
     }.recover {
