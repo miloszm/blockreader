@@ -30,7 +30,7 @@ class Module extends AbstractModule {
 
     bind(classOf[GlobalScheduler]).asEagerSingleton()
 
-    bind(classOf[HttpClient]).toInstance(AkkaHttpClient)
+    bind(classOf[HttpClient]).toInstance(MockHttpClient)
   }
 
 }
