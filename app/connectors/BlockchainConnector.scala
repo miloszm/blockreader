@@ -79,6 +79,10 @@ case class BlockchainConnector(cache: CacheApi, httpClient: HttpClient) {
   }
 
   def doGetBlocks(dateTime:LocalDateTime): Future[Validated[BlockReaderError, JsonBlocks]] = {
+    // https://api.blockcypher.com/v1/btc/main/blocks/294322?txstart=1&limit=1 // use blockcypher as blockchain.info/blocks stopped working
+    // dont need to convert block height to hashes as blockcypher has API based on height so we can skip this step
+    // also, we can assume 24*6 blocks per day plus some extra, and then filter by time
+    // we get latest height, go back 200 blocks, and then enrich only those which are within 24h
     val futureResponse = httpClient.get(s"https://blockchain.info/blocks/${toEpochMilli(dateTime)}?format=json")
     futureResponse.flatMap { response =>
       response.status match {
