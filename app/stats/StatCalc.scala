@@ -1,5 +1,7 @@
 package stats
 
+import model.domain.MaxValue
+
 object StatCalc {
   def avg(coll: Seq[Long]): Long =
     if (coll.isEmpty) 0 else coll.sum / coll.size
@@ -11,4 +13,5 @@ object StatCalc {
     }
   }
   def safeMax(seq: Seq[Long]): Long = if (seq.isEmpty) 0L else seq.max
+  def safeMaxValue(seq: Seq[MaxValue]): MaxValue = if (seq.isEmpty) MaxValue(0L, "") else seq.max
 }

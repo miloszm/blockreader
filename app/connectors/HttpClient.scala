@@ -50,7 +50,7 @@ object MockHttpClient extends HttpClient {
       val i = topHeight-height
       println(s">>>$hash   >>> i=$i >>> height=$height")
       val tm = now - ((millis24h/numBlocks)*i)
-      val transaction = JsonTransaction(Seq(JsonInput(Some(JsonOutput(Some(30000))))), Seq(JsonOutput(Some(26000))), 0L, 0, 0, "abc", 220, tm/1000)
+      val transaction = JsonTransaction(Seq(JsonInput(Some(JsonOutput(Some(30000), Some("3ga"))))), Seq(JsonOutput(Some(26000), Some("3ga"))), 0L, 0, 0, "abc", 220, tm/1000)
       val block = JsonBlock(10L, height, 1, Seq(transaction), tm/1000)
       val body = Json.toJson[JsonBlock](block).toString()
       Future.successful[HttpResponse](HttpResponse.apply(StatusCodes.OK, Nil, HttpEntity(body)))
