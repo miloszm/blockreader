@@ -9,9 +9,9 @@ import akka.stream.scaladsl.{Sink, Source}
 import akka.stream.{ActorMaterializer, ThrottleMode}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import connectors.{AkkaHttpClient, BlockchainConnector}
+import connectors.BlockchainConnector
 import model._
-import model.domain.EmptyBlock
+import model.domain.{EmptyBlock, RichBlock, Transactions}
 import model.json.{JsonBlockEntry, JsonBlocks}
 import play.api.Logger
 import play.api.cache.CacheApi
@@ -81,7 +81,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, bloc
           }
           case l => {
             val all = l.flatMap(_.block.tx)
-            cache.set("feeresult", FeeResult.fromTransactions(AllTransactions(all), l.exists(_.block.isEmpty), usdPrice))
+            cache.set("feeresult", FeeResult.fromTransactions(Transactions(all), l.exists(_.block.isEmpty), usdPrice))
 //            Ok(rich_blocks_template("", RichBlocks(l), counter))
           }
         }

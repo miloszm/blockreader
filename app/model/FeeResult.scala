@@ -1,5 +1,7 @@
 package model
 
+import model.domain.Transactions
+
 case class FeeResult
 (
   topBlock: Long,
@@ -23,7 +25,7 @@ case class FeeResult
 )
 
 object FeeResult {
-  def fromTransactions(all: AllTransactions, emptyExists: Boolean, usdPrice: BigDecimal) =
+  def fromTransactions(all: Transactions, emptyExists: Boolean, usdPrice: BigDecimal) =
     FeeResult(
       all.topBlock,
       all.bottomBlock,
