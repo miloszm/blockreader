@@ -26,8 +26,10 @@ case class JsonTransaction(
   def toTransaction = Transaction(inputs.flatMap(_.toInput), out.flatMap(_.toOutput), tx_index, hash, size, time)
   def toFeeOnlyTransaction(height: Long, index: Int, blockTime: Long) = {
     val sumInputs: Long = inputs.flatMap(_.toInput).map(_.value).sum
-    val sumOutputs: Long = out.flatMap(_.toOutput).map(_.value).sum
+    val outputs = out.flatMap(_.toOutput).map(_.value)
+    val sumOutputs: Long = outputs.sum
     val fees = sumInputs - sumOutputs
-    FeeOnlyTransaction(height, index, fees, size, time, blockTime)
+    val maxValue = outputs.max
+    FeeOnlyTransaction(height, index, fees, maxValue, size, time, blockTime)
   }
 }

@@ -50,10 +50,11 @@
             </tr>
         </thead>
         <tbody>
-        @for((period, fee) <- feeResult.last2hPeriods) {
+        @for((period, fee, maxValue) <- feeResult.last2hPeriods) {
             <tr>
                 <td>@period</td>
                 <td>@fee.toString</td>
+                <td>@maxValue</td>
             </tr>
         }
         </tbody>

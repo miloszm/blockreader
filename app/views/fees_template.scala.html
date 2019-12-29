@@ -110,13 +110,15 @@
             <tr>
                 <th scope="col">time GMT</th>
                 <th scope="col">median fee per byte in satoshis (confirmed within 20 minutes)</th>
+                <th scope="col">max value involved</th>
             </tr>
         </thead>
         <tbody>
-        @for((period, fee) <- feeResult.last2hPeriods) {
+        @for((period, fee, maxValue) <- feeResult.last2hPeriods) {
             <tr>
                 <td>@period</td>
                 <td>@fee.toString</td>
+                <td>@maxValue</td>
             </tr>
         }
         </tbody>

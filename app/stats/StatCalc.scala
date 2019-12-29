@@ -10,4 +10,5 @@ object StatCalc {
       if (coll.size % 2 == 0) (lower.last + upper.head) / 2 else upper.head
     }
   }
+  def safeMax(seq: Seq[Long]): Long = if (seq.isEmpty) 0L else seq.max
 }
