@@ -7,6 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, StatusCodes}
 import akka.stream.ActorMaterializer
 import model._
+import model.json._
 import play.api.libs.json.Json
 
 import scala.concurrent.Future

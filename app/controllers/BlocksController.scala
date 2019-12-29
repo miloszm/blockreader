@@ -11,6 +11,8 @@ import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import connectors.{AkkaHttpClient, BlockchainConnector}
 import model._
+import model.domain.EmptyBlock
+import model.json.{JsonBlockEntry, JsonBlocks}
 import play.api.Logger
 import play.api.cache.CacheApi
 import play.api.mvc._
