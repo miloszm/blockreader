@@ -33,10 +33,10 @@ object MockHttpClient extends HttpClient {
   val now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
   override def get(url: String): Future[HttpResponse] = url match {
     case "https://blockchain.info/latestblock" =>
-      val body = Json.toJson[LatestBlock](LatestBlock(topHeight)).toString()
+      val body = Json.toJson[JsonLatestBlock](JsonLatestBlock(topHeight)).toString()
       Future.successful[HttpResponse](HttpResponse.apply(StatusCodes.OK, Nil, HttpEntity(body)))
     case "https://blockchain.info/ticker" =>
-      val body = Json.toJson[PriceTicker](PriceTicker(UsdPrice(BigDecimal(10000)))).toString()
+      val body = Json.toJson[JsonPriceTicker](JsonPriceTicker(JsonUsdPrice(BigDecimal(10000)))).toString()
       Future.successful[HttpResponse](HttpResponse.apply(StatusCodes.OK, Nil, HttpEntity(body)))
     case u if u contains "https://blockchain.info/blocks" =>
       val entries = (0 until numBlocks).map{ i =>

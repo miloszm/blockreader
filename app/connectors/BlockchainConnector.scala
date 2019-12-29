@@ -30,9 +30,9 @@ object Formats {
   implicit val formatBlock = Json.format[JsonBlock]
   implicit val formatBlockEntry = Json.format[JsonBlockEntry]
   implicit val formatBlocks = Json.format[JsonBlocks]
-  implicit val formatLatestBlock = Json.format[LatestBlock]
-  implicit val formatUsdPrice = Json.format[UsdPrice]
-  implicit val formatPriceTicker = Json.format[PriceTicker]
+  implicit val formatLatestBlock = Json.format[JsonLatestBlock]
+  implicit val formatUsdPrice = Json.format[JsonUsdPrice]
+  implicit val formatPriceTicker = Json.format[JsonPriceTicker]
 }
 
 @Singleton
@@ -49,7 +49,7 @@ case class BlockchainConnector @Inject()(cache: CacheApi, httpClient: HttpClient
     futureResponse.flatMap { response =>
       val jsonResponse = Unmarshal(response.entity).to[String]
       jsonResponse.map{string =>
-        val latestBlockOpt = Json.parse(string).validate[LatestBlock].asOpt
+        val latestBlockOpt = Json.parse(string).validate[JsonLatestBlock].asOpt
         logger.info(s"latest block is ${latestBlockOpt.map(_.height)}")
         latestBlockOpt
       }
@@ -62,7 +62,7 @@ case class BlockchainConnector @Inject()(cache: CacheApi, httpClient: HttpClient
     futureResponse.flatMap { response =>
       val jsonResponse = Unmarshal(response.entity).to[String]
       jsonResponse.map{string =>
-        Json.parse(string).validate[PriceTicker].asOpt
+        Json.parse(string).validate[JsonPriceTicker].asOpt
       }
     }.map(x => x.map(_.`USD`.`15m`).map(_.setScale(2, RoundingMode.FLOOR)).getOrElse(0))
   }

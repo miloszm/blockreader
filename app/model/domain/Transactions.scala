@@ -3,7 +3,7 @@ package model.domain
 import java.time.LocalDateTime
 
 import connectors.BlockchainConnector
-import model.StatCalc
+import stats.StatCalc
 
 import scala.math.BigDecimal.RoundingMode
 

@@ -1,6 +1,4 @@
-package model
-
-case class LatestBlock(height: Int)
+package stats
 
 object StatCalc {
   def avg(coll: Seq[Long]): Long =
@@ -13,8 +11,3 @@ object StatCalc {
     }
   }
 }
-
-case class PriceTicker( `USD`: UsdPrice)
-
-case class UsdPrice( `15m`: BigDecimal )
-

@@ -1,6 +1,6 @@
 package model.domain
 
-import model.StatCalc
+import stats.StatCalc
 
 sealed trait BlockTrait {
   def isEmpty = false
