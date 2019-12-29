@@ -36,7 +36,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, bloc
   def blocks: Action[AnyContent] = Action.async {
     val futureValBlocks = blockchainConnector.getBlocks
     futureValBlocks.map {
-      case Valid(jsonBlocks) => Ok(blocks_template("", jsonBlocks.toBlocks))
+      case Valid(jsonBlocks) => Ok(blocks_template("", jsonBlocks.toBlockIds))
       case Invalid(error) => Ok(error.message)
     }
   }
@@ -90,7 +90,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, bloc
     }
   }
 
-  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks]): Future[Seq[Validated[BlockReaderError, RichBlockEntry]]] = {
+  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks]): Future[Seq[Validated[BlockReaderError, RichBlock]]] = {
     blocks match {
       case Valid(bl) =>
         produceRichBlockEntries(bl)
@@ -98,12 +98,12 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, bloc
     }
   }
 
-  private def produceRichBlockEntries(bl: JsonBlocks): Future[Seq[Valid[RichBlockEntry]]] = {
+  private def produceRichBlockEntries(bl: JsonBlocks): Future[Seq[Valid[RichBlock]]] = {
     val source = Source.apply[JsonBlockEntry](bl.blocks.toList)
       .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
 
     val richBlockEntrySource = source.mapAsync(parallelism = 10) { jsonBlockEntry =>
-      cache.get[RichBlockEntry](jsonBlockEntry.height.toString) match {
+      cache.get[RichBlock](jsonBlockEntry.height.toString) match {
         case Some(richBlockEntry) =>
           logger.info(s"got from cache block ${jsonBlockEntry.height}")
           Future.successful(Valid(richBlockEntry))
@@ -111,19 +111,19 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, bloc
           val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
           response map {
             case Valid(jb) =>
-              val rbe = RichBlockEntry(jsonBlockEntry.toBlockEntry, jb.toBlock)
+              val rbe = RichBlock(jsonBlockEntry.toBlockId, jb.toBlock)
               cache.set(jsonBlockEntry.height.toString, rbe)
               logger.info(s"added to cache block ${jsonBlockEntry.height}")
               Valid(rbe)
             case Invalid(e) =>
               logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
-              Valid(RichBlockEntry(jsonBlockEntry.toBlockEntry, EmptyBlock))
+              Valid(RichBlock(jsonBlockEntry.toBlockId, EmptyBlock))
           }
         }
       }
     }
 
-    val richBlockEntries: Future[Seq[Valid[RichBlockEntry]]] =
+    val richBlockEntries: Future[Seq[Valid[RichBlock]]] =
       richBlockEntrySource.runWith(Sink.seq)
     if (bl.blocks.nonEmpty) {
       logger.info(s"sequence of ${bl.blocks.size} block requests")

@@ -6,7 +6,7 @@
 
  <head> <meta http-equiv="refresh" content="30" /> </head>
 
- <h1>@count (@richBlocks.blocks.headOption.map(_.blockEntry.height))</h1>
+ <h1>@count (@richBlocks.blocks.headOption.map(_.blockId.height))</h1>
  <h2>Total avg fee per byte no wait: @{richBlocks.totalAvgFeePerByteNoWait}</h2>
  <h1>Last 24h median fee per byte no wait: @{richBlocks.last24hMedianFeePerByteNoWait}</h1>
  <h1>Last 2h median fee per byte no wait: @{richBlocks.last2hMedianFeePerByteNoWait}</h1>
@@ -27,13 +27,13 @@
   <tbody>
   @for(blockentry <- richBlocks.blocks) {
    <tr>
-    <td>@blockentry.blockEntry.height</td>
-    <td>@blockentry.blockEntry.time</td>
+    <td>@blockentry.blockId.height</td>
+    <td>@blockentry.blockId.time</td>
     <td>@{BigDecimal(blockentry.block.sumFees) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(blockentry.block.avgFee) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(blockentry.block.medianFee) / BigDecimal(100000000)}</td>
     <td>@{BigDecimal(blockentry.block.maxFee) / BigDecimal(100000000)}</td>
-    <td><a href=@{s"/block/${blockentry.blockEntry.hash}"}>@blockentry.blockEntry.hash</a></td>
+    <td><a href=@{s"/block/${blockentry.blockId.hash}"}>@blockentry.blockId.hash</a></td>
    </tr>
  }
   </tbody>

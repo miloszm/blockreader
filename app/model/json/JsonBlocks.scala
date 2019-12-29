@@ -1,10 +1,10 @@
 package model.json
 
 import cats.Semigroup
-import model.Blocks
+import model.domain.BlockIds
 
 case class JsonBlocks(blocks: Seq[JsonBlockEntry]) {
-  def toBlocks = Blocks(this.blocks.map(_.toBlockEntry))
+  def toBlockIds = BlockIds(this.blocks.map(_.toBlockId))
   def height = this.blocks.map(_.height).max
   def signature = s"${blocks.lastOption.map(_.height.toString)}..${blocks.headOption.map(_.height.toString)}"
 }

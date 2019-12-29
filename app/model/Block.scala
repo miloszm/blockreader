@@ -3,18 +3,13 @@ package model
 import java.time.LocalDateTime
 
 import connectors.BlockchainConnector
-import model.domain.{BlockTrait, FeeOnlyTransaction}
-import org.joda.time.LocalTime
+import model.domain.{BlockId, BlockTrait, FeeOnlyTransaction}
 
 import scala.math.BigDecimal.RoundingMode
 
-case class Blocks(blocks: Seq[BlockEntry])
-
 case class LatestBlock(height: Int)
 
-case class BlockEntry(height: Int, hash: String, time: LocalTime)
-
-case class RichBlocks(blocks: Seq[RichBlockEntry]){
+case class RichBlocks(blocks: Seq[RichBlock]){
   def totalAvgFeePerByteNoWait: Long = {
     val blcks = blocks.map(_.block).filterNot(_.isEmpty)
     val notWaitingTransactions = blcks.flatMap { block =>
@@ -44,7 +39,7 @@ case class RichBlocks(blocks: Seq[RichBlockEntry]){
   }
 }
 
-case class RichBlockEntry(blockEntry: BlockEntry, block: BlockTrait)
+case class RichBlock(blockId: BlockId, block: BlockTrait)
 
 object StatCalc {
   def avg(coll: Seq[Long]): Long =

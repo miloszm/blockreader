@@ -1,6 +1,6 @@
-@import _root_.model.Blocks
+@import _root_.model.domain.BlockIds
 
-@(message: String, blocks: Blocks)
+@(message: String, blocks: BlockIds)
 
 @main("Welcome to Play") {
  <table>
@@ -12,11 +12,11 @@
    </tr>
   </thead>
   <tbody>
-  @for(blockentry <- blocks.blocks) {
+  @for(blockId <- blocks.blocks) {
    <tr>
-    <td>@blockentry.height.toString</td>
-    <td>@blockentry.hash</td>
-    <td>@blockentry.time</td>
+    <td>@blockId.height.toString</td>
+    <td>@blockId.hash</td>
+    <td>@blockId.time</td>
    </tr>
  }
   </tbody>
