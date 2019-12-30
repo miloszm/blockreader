@@ -13,5 +13,5 @@ object StatCalc {
     }
   }
   def safeMax(seq: Seq[Long]): Long = if (seq.isEmpty) 0L else seq.max
-  def safeMaxValue(seq: Seq[MaxValue]): MaxValue = if (seq.isEmpty) MaxValue(0L, "") else seq.max
+  def safeMaxValue(seq: Seq[MaxValue]): MaxValue = if (seq.isEmpty) MaxValue(0L, "","") else seq.max
 }

@@ -24,7 +24,7 @@ case class Transactions(all: Seq[FeeOnlyTransaction]){
   def totalMedianLast24h01Blocks: Long = StatCalc.median(last24h01Blocks.map(_.feePerByte))
   def totalMedianLast2h: Long = StatCalc.median(last2h.map(_.feePerByte))
   def totalMedianLast2h01Blocks: Long = StatCalc.median(last2h01Blocks.map(_.feePerByte))
-  def medianLast12Periods2hEach: Seq[(String,Long,String,String)] = {
+  def medianLast12Periods2hEach: Seq[(String,Long,String,String,String)] = {
     val currentHour = LocalDateTime.now.getHour
     (24 to 2 by -2).map { i =>
       val maxValueWrapper = StatCalc.safeMaxValue(last24h.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.maxValue))
@@ -35,7 +35,8 @@ case class Transactions(all: Seq[FeeOnlyTransaction]){
           val maxValue = BigDecimal(maxValueWrapper.value) / BigDecimal(100000000)
           if (maxValue.equals(BigDecimal(0))) "0" else maxValue.setScale(8, RoundingMode.FLOOR).toString()
         },
-        maxValueWrapper.address
+        maxValueWrapper.address,
+        maxValueWrapper.script
       )
     }
   }

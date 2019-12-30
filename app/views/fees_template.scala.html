@@ -111,16 +111,18 @@
                 <th scope="col">time GMT</th>
                 <th scope="col">median fee per byte in satoshis (confirmed within 20 minutes)</th>
                 <th scope="col">max value involved</th>
-                <th scope="col">max value address</th>
+                <th scope="col">address</th>
+                <th scope="col">script</th>
             </tr>
         </thead>
         <tbody>
-        @for((period, fee, maxValue, address) <- feeResult.last2hPeriods) {
+        @for((period, fee, maxValue, address, script) <- feeResult.last2hPeriods) {
             <tr>
                 <td>@period</td>
                 <td>@fee.toString</td>
                 <td>@maxValue</td>
                 <td>@address</td>
+                <td>@script</td>
             </tr>
         }
         </tbody>

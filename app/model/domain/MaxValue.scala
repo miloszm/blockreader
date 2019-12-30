@@ -1,6 +1,6 @@
 package model.domain
 
-case class MaxValue(value: Long, address: String)
+case class MaxValue(value: Long, address: String, script: String)
 
 object MaxValue {
 

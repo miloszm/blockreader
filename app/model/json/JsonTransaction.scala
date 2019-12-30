@@ -2,7 +2,7 @@ package model.json
 
 import model.domain._
 
-case class JsonOutput(value: Option[Long], addr: Option[String]) {
+case class JsonOutput(value: Option[Long], addr: Option[String], script: Option[String]) {
   def toOutput = value.map(v => Output(v))
 }
 
@@ -30,7 +30,11 @@ case class JsonTransaction(
     val sumOutputs: Long = outputs.sum
     val fees = sumInputs - sumOutputs
     val maxValue = outputs.max
-    val maxValueWrapper = MaxValue(maxValue, out.filter(_.value.contains(maxValue)).flatMap(_.addr).headOption.getOrElse(""))
+    val maxValueWrapper = MaxValue(
+      maxValue,
+      out.filter(_.value.contains(maxValue)).flatMap(_.addr).headOption.getOrElse(""),
+      out.filter(_.value.contains(maxValue)).flatMap(_.script).headOption.getOrElse("")
+    )
     FeeOnlyTransaction(height, index, fees, maxValueWrapper, size, time, blockTime)
   }
 }
