@@ -14,7 +14,7 @@ import model._
 import model.domain.{EmptyBlock, RichBlock, Transactions}
 import model.json.{JsonBlockEntry, JsonBlocks}
 import play.api.Logger
-import play.api.cache.CacheApi
+import play.api.cache.SyncCacheApi
 import play.api.mvc._
 import views.html._
 
@@ -23,7 +23,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, blockchainConnector: BlockchainConnector)(implicit exec: ExecutionContext) extends Controller {
+class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, blockchainConnector: BlockchainConnector)(implicit exec: ExecutionContext) extends Controller {
 
   implicit val system = ActorSystem("blockreader")
   implicit val materializer = ActorMaterializer()
@@ -53,12 +53,12 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, bloc
   }
 
   def all: Action[AnyContent] = Action.async {
-    val feeResult = cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty)
+    val feeResult = cache.get[FeeResult]("feeresult").getOrElse(FeeResult.empty)
     Future.successful(Ok(all_template(feeResult)))
   }
 
   def fees: Action[AnyContent] = Action.async {
-    val feeResult = cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty)
+    val feeResult = cache.get[FeeResult]("feeresult").getOrElse(FeeResult.empty)
 //    val feeResult = FeeResult.fake
     Future.successful(Ok(fees_template(feeResult)))
   }
@@ -76,7 +76,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: CacheApi, bloc
         val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
         valid match {
           case Nil => {
-            cache.set("feeresult", cache.getOrElse[FeeResult]("feeresult")(FeeResult.empty).copy(usdPrice = usdPrice))
+            cache.set("feeresult", cache.get[FeeResult]("feeresult").getOrElse(FeeResult.empty).copy(usdPrice = usdPrice))
 //            Ok(rich_blocks_empty_template(""))
           }
           case l => {

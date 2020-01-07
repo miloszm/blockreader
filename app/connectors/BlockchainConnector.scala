@@ -1,8 +1,8 @@
 package connectors
 
 import java.time.{LocalDate, LocalDateTime, ZoneId}
-import javax.inject.{Inject, Singleton}
 
+import javax.inject.{Inject, Singleton}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
@@ -13,10 +13,10 @@ import connectors.BlockchainConnector.toEpochMilli
 import model.json._
 import model.{BlockReaderError, _}
 import play.api.Logger
-import play.api.Play.current
-import play.api.cache.CacheApi
+//import play.api.Play.current
+import play.api.cache.SyncCacheApi
 import play.api.libs.json.Json
-import play.api.libs.ws.WS
+//import play.api.libs.ws.WS
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -36,7 +36,7 @@ object Formats {
 }
 
 @Singleton
-case class BlockchainConnector @Inject()(cache: CacheApi, httpClient: HttpClient) {
+case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpClient) {
   import Formats._
 
   implicit val system: ActorSystem = ActorSystem("blockreader")

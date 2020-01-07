@@ -2,9 +2,6 @@ import com.google.inject.AbstractModule
 import java.time.Clock
 
 import connectors.{AkkaHttpClient, HttpClient, MockHttpClient}
-import net.sf.ehcache.Ehcache
-import net.sf.ehcache.hibernate.EhCache
-import play.api.cache.CacheApi
 import services.{ApplicationTimer, AtomicCounter, Counter, GlobalScheduler}
 
 /**

@@ -2,7 +2,7 @@ package model.json
 
 import model.domain._
 
-case class JsonOutput(value: Option[Long], addr: Option[String], script: Option[String]) {
+case class JsonOutput(value: Option[Long], addr: Option[String], script: Option[String] = None) {
   def toOutput = value.map(v => Output(v))
 }
 
