@@ -22,28 +22,25 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.math.BigDecimal.RoundingMode
 
-
-object Formats {
-  implicit val formatOutput = Json.format[JsonOutput]
-  implicit val formatInput = Json.format[JsonInput]
-  implicit val formatTransaction = Json.format[JsonTransaction]
-  implicit val formatBlock = Json.format[JsonBlock]
-  implicit val formatBlockEntry = Json.format[JsonBlockEntry]
-  implicit val formatBlocks = Json.format[JsonBlocks]
-  implicit val formatLatestBlock = Json.format[JsonLatestBlock]
-  implicit val formatUsdPrice = Json.format[JsonUsdPrice]
-  implicit val formatPriceTicker = Json.format[JsonPriceTicker]
-}
-
-@Singleton
-case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpClient, btcConn: BitcoinSConnector) {
+case class BlockchainBlockchainConnector (cache: SyncCacheApi, httpClient: HttpClient) {
   import Formats._
 
   implicit val system: ActorSystem = ActorSystem("blockreader")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   val logger = Logger
 
-  def getLatestBlock: Future[Int] = btcConn.getLatestBlock
+  def getLatestBlock: Future[Int] = {
+    val request = httpClient.get(s"https://blockchain.info/latestblock")
+    val futureResponse = request
+    futureResponse.flatMap { response =>
+      val jsonResponse = Unmarshal(response.entity).to[String]
+      jsonResponse.map{string =>
+        val latestBlockOpt = Json.parse(string).validate[JsonLatestBlock].asOpt
+        logger.info(s"latest block is ${latestBlockOpt.map(_.height)}")
+        latestBlockOpt
+      }
+    }.map(x => x.map(_.height).getOrElse(-1))
+  }
 
   def getUsdPrice: Future[BigDecimal] = {
     val request = httpClient.get(s"https://blockchain.info/ticker")
@@ -145,29 +142,5 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }
   }
 
-  def doGetBlock2(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
-    btcConn.getBlock(blockHash).map { b =>
-      val r = JsonBlock(0, blockHeight, b.txCount.toInt, b.transactions.map{ t =>
-        JsonTransaction(
-          Nil, //t.inputs.map(i => JsonInput(i.previousOutput.vout.toLong)),
-          Nil, 
-          0L,
-          t.inputs.size,
-          t.outputs.size,
-          t.txId.hex,
-          t.totalSize.toInt,
-          t.lockTime.toLong
-        )
-      }, b.blockHeader.time.toLong)
-      Valid[JsonBlock](r)
-    }
-  }
-
 }
 
-
-object BlockchainConnector {
-  def toEpochMilli(localDateTime: LocalDateTime) =
-     localDateTime.atZone(ZoneId.systemDefault())
-      .toInstant.toEpochMilli
-}

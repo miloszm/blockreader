@@ -2,10 +2,16 @@ package connectors
 
 import java.net.URI
 
-import scala.concurrent.{Await, ExecutionContext}
+import javax.inject.Singleton
+import org.bitcoins.core.crypto.DoubleSha256Digest
+import org.bitcoins.core.protocol.blockchain.Block
+import org.bitcoins.rpc.jsonmodels.GetBlockResult
+
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 
-object BitcoinSConnector extends App {
+@Singleton
+class BitcoinSConnector {
 
   import org.bitcoins.core.config._
   import org.bitcoins.rpc.config._
@@ -30,7 +36,7 @@ object BitcoinSConnector extends App {
 
   implicit val ec: ExecutionContext = ExecutionContext.global
 
-  val rpcCli = BitcoindRpcClient(bitcoindInstance)
+  lazy val rpcCli = BitcoindRpcClient(bitcoindInstance)
 
   def getInfo() = {
     val infoFuture = rpcCli.getBlockChainInfo
@@ -40,5 +46,12 @@ object BitcoinSConnector extends App {
   }
 
   getInfo()
+
+  def getLatestBlock: Future[Int] = rpcCli.getBlockChainInfo.map(_.blocks)
+
+  def getBlock(blockHash: String): Future[Block] = {
+    val h = DoubleSha256Digest(blockHash)
+    rpcCli.getBlockRaw(h)
+  }
 
 }
