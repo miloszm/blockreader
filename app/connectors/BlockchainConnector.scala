@@ -150,8 +150,8 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
       val r = JsonBlock(0, blockHeight, b.txCount.toInt, b.transactions.map{ t =>
         JsonTransaction(
           Nil, //t.inputs.map(i => JsonInput(i.previousOutput.vout.toLong)),
-          Nil, 
-          0L,
+          t.outputs.map(o => JsonOutput(Some(o.value.satoshis.toLong), None, Some(o.scriptPubKey.toString))),
+          0L,// TODO
           t.inputs.size,
           t.outputs.size,
           t.txId.hex,
