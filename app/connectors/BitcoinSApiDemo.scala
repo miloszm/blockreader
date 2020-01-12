@@ -3,10 +3,12 @@ package connectors
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.net.URI
 
-import org.bitcoins.core.crypto.{DoubleSha256Digest, DoubleSha256DigestBE}
-import org.bitcoins.core.protocol.BitcoinAddress
+import org.bitcoins.core.crypto.{DoubleSha256Digest, DoubleSha256DigestBE, Sha256Hash160Digest}
+import org.bitcoins.core.protocol.{Address, BitcoinAddress, P2PKHAddress}
 import org.bitcoins.core.protocol.blockchain.Block
+import org.bitcoins.core.protocol.script.ScriptPubKey
 import org.bitcoins.core.protocol.transaction.{EmptyTransaction, Transaction}
+import org.bitcoins.core.util.Base58
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -97,6 +99,8 @@ object BitcoinSApiDemo extends App {
             val prevTransaction = Await.result(prevTransactionFuture, 20 seconds)
             input.vout.foreach { inVout =>
               println(s"         value: ${prevTransaction.vout(inVout).value}")
+              println(s"         script asm: ${prevTransaction.vout(inVout).scriptPubKey.asm}")
+              println(s"         script hex: ${prevTransaction.vout(inVout).scriptPubKey.hex}")
               printAddresses("         address: ", prevTransaction.vout(inVout).scriptPubKey.addresses)
             }
             input.vout.map(prevTransaction.vout(_).value.toBigDecimal).getOrElse(BigDecimal(0))
@@ -105,10 +109,14 @@ object BitcoinSApiDemo extends App {
     println(s"fee: ${totalIn.sum - totalOut}")
   }
 
-//  getTransactionDemo("a88d37b18624f2ff8853e51a0a7fb1b005ca5c8621c8b2a56207d35b00141974")
+  getTransactionDemo("a88d37b18624f2ff8853e51a0a7fb1b005ca5c8621c8b2a56207d35b00141974")
 //  getTransactionDemo("592ca3dc4e1e7a659e480df192968c3ade8f64b8c26e997960676d5e8150722c")
-  val transWithUnspent = "e27ab49516f7b7b0a5bd5d7b4ced63b57ec590468aafe6c68f501cfeff79f3a6"
-  getTransactionDemo(transWithUnspent)
+//  val transWithUnspent = "e27ab49516f7b7b0a5bd5d7b4ced63b57ec590468aafe6c68f501cfeff79f3a6"
+//  getTransactionDemo(transWithUnspent)
+
+
+  println(">>")
+  println(P2PKHAddress(Sha256Hash160Digest("528453ff8ee784f18b4014ab4f2bd74894eef65f"), MainNet))
 
   System.exit(1)
 }
