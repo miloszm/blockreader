@@ -1,14 +1,16 @@
 package connectors
 
+import java.io.{ByteArrayOutputStream, PrintStream}
 import java.net.URI
 
 import org.bitcoins.core.crypto.{DoubleSha256Digest, DoubleSha256DigestBE}
 import org.bitcoins.core.protocol.BitcoinAddress
 import org.bitcoins.core.protocol.blockchain.Block
-import org.bitcoins.core.protocol.transaction.EmptyTransaction
+import org.bitcoins.core.protocol.transaction.{EmptyTransaction, Transaction}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.util.Try
 
 object BitcoinSApiDemo extends App {
   import org.bitcoins.core.config._
@@ -57,46 +59,56 @@ object BitcoinSApiDemo extends App {
       addresses.foreach { addrs =>
         println(s"$prefix${addrs.mkString(",")}")
       }
-    val transactionFuture = rpcCli.getRawTransaction(DoubleSha256DigestBE(txId))
+    val thisTxSha = DoubleSha256DigestBE(txId)
+    val transactionFuture = rpcCli.getRawTransaction(thisTxSha)
     val transaction = Await.result(transactionFuture, 20 seconds)
     println("=" * 80)
     println(s"txid=${transaction.txid.hex}")
+    println(s"size=${transaction.size}")
+    println(s"vsize=${transaction.vsize}")
+    println(s"weight=${transaction.hex.weight}")
+    println(s"base size=${transaction.hex.baseSize}")
+    println(s"version=${transaction.hex.version.hex}")
+    println(s"is coinbase=${transaction.hex.isCoinbase}")
     println(s"blockhash=${transaction.blockhash.map(_.hex).getOrElse("")}")
     println(s"confirmations=${transaction.confirmations.getOrElse(0)}")
     val totalOut = transaction.vout.map(_.value.toBigDecimal).sum
     println(s"total out=$totalOut")
-    transaction.vout.foreach { a =>
-      println(s"  out ${a.n}")
-      println(s"     value: ${a.value}")
-      println(s"     script type: ${a.scriptPubKey.scriptType}")
-      println(s"     script asm: ${a.scriptPubKey.asm}")
-      println(s"     script hex: ${a.scriptPubKey.hex}")
-      printAddresses("     address: ", a.scriptPubKey.addresses)
+    transaction.vout.foreach { output =>
+      println(s"  out ${output.n}")
+      println(s"     value: ${output.value}")
+      println(s"     script type: ${output.scriptPubKey.scriptType}")
+      println(s"     script asm: ${output.scriptPubKey.asm}")
+      println(s"     script hex: ${output.scriptPubKey.hex}")
+      printAddresses("     address: ", output.scriptPubKey.addresses)
+      println(s"     spent: ${Try(Await.result(rpcCli.getTxOut(thisTxSha, output.n), 20 seconds)).fold(_ => "yes", v => "no: available " + v.value)}")
     }
     val totalIn = for {
-        (in, index) <- transaction.vin.zipWithIndex
+        (input, index) <- transaction.vin.zipWithIndex
       }
       yield {
           println(s"  in $index")
-          println(s"     vout: ${in.vout.getOrElse(-1)}")
-          println(s"     sequence: ${in.sequence.getOrElse(-1)}")
-          println(s"     witness: ${in.txinwitness.getOrElse("")}")
-          println(s"     txid: ${in.txid.map(_.hex).getOrElse("")}")
-          in.txid.fold(BigDecimal(0)){ prevTxid =>
+          println(s"     vout: ${input.vout.getOrElse(-1)}")
+          println(s"     sequence: ${input.sequence.getOrElse(-1)}")
+          println(s"     witness: ${input.txinwitness.getOrElse("")}")
+          println(s"     txid: ${input.txid.map(_.hex).getOrElse("")}")
+          input.txid.fold(BigDecimal(0)){ prevTxid =>
             val prevTransactionFuture = rpcCli.getRawTransaction(prevTxid)
             val prevTransaction = Await.result(prevTransactionFuture, 20 seconds)
-            in.vout.foreach { inVout =>
+            input.vout.foreach { inVout =>
               println(s"         value: ${prevTransaction.vout(inVout).value}")
               printAddresses("         address: ", prevTransaction.vout(inVout).scriptPubKey.addresses)
             }
-            in.vout.map(prevTransaction.vout(_).value.toBigDecimal).getOrElse(BigDecimal(0))
+            input.vout.map(prevTransaction.vout(_).value.toBigDecimal).getOrElse(BigDecimal(0))
           }
       }
     println(s"fee: ${totalIn.sum - totalOut}")
   }
 
-  getTransactionDemo("a88d37b18624f2ff8853e51a0a7fb1b005ca5c8621c8b2a56207d35b00141974")
+//  getTransactionDemo("a88d37b18624f2ff8853e51a0a7fb1b005ca5c8621c8b2a56207d35b00141974")
 //  getTransactionDemo("592ca3dc4e1e7a659e480df192968c3ade8f64b8c26e997960676d5e8150722c")
+  val transWithUnspent = "e27ab49516f7b7b0a5bd5d7b4ced63b57ec590468aafe6c68f501cfeff79f3a6"
+  getTransactionDemo(transWithUnspent)
 
   System.exit(1)
 }
