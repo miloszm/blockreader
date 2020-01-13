@@ -66,6 +66,7 @@ object BitcoinSApiDemo extends App {
     val transaction = Await.result(transactionFuture, 20 seconds)
     println("=" * 80)
     println(s"txid=${transaction.txid.hex}")
+    println(s"hash=${transaction.hash}")
     println(s"size=${transaction.size}")
     println(s"vsize=${transaction.vsize}")
     println(s"weight=${transaction.hex.weight}")
@@ -76,6 +77,10 @@ object BitcoinSApiDemo extends App {
     println(s"confirmations=${transaction.confirmations.getOrElse(0)}")
     val totalOut = transaction.vout.map(_.value.toBigDecimal).sum
     println(s"total out=$totalOut")
+
+    /**
+      * outputs
+      */
     transaction.vout.foreach { output =>
       println(s"  out ${output.n}")
       println(s"     value: ${output.value}")
@@ -83,8 +88,12 @@ object BitcoinSApiDemo extends App {
       println(s"     script asm: ${output.scriptPubKey.asm}")
       println(s"     script hex: ${output.scriptPubKey.hex}")
       printAddresses("     address: ", output.scriptPubKey.addresses)
-      println(s"     spent: ${Try(Await.result(rpcCli.getTxOut(thisTxSha, output.n), 20 seconds)).fold(_ => "yes", v => "no: available " + v.value)}")
+      //println(s"     spent: ${Try(Await.result(rpcCli.getTxOut(thisTxSha, output.n), 20 seconds)).fold(_ => "yes", v => "no: available " + v.value)}")
     }
+
+    /**
+      * inputs
+      */
     val totalIn = for {
         (input, index) <- transaction.vin.zipWithIndex
       }
@@ -92,16 +101,18 @@ object BitcoinSApiDemo extends App {
           println(s"  in $index")
           println(s"     vout: ${input.vout.getOrElse(-1)}")
           println(s"     sequence: ${input.sequence.getOrElse(-1)}")
-          println(s"     witness: ${input.txinwitness.getOrElse("")}")
+          println(s"     script asm: ${input.scriptSig.map(_.asm).getOrElse("")}")
+          println(s"     script hex: ${input.scriptSig.map(_.hex).getOrElse("")}")
           println(s"     txid: ${input.txid.map(_.hex).getOrElse("")}")
           input.txid.fold(BigDecimal(0)){ prevTxid =>
             val prevTransactionFuture = rpcCli.getRawTransaction(prevTxid)
             val prevTransaction = Await.result(prevTransactionFuture, 20 seconds)
-            input.vout.foreach { inVout =>
-              println(s"         value: ${prevTransaction.vout(inVout).value}")
-              println(s"         script asm: ${prevTransaction.vout(inVout).scriptPubKey.asm}")
-              println(s"         script hex: ${prevTransaction.vout(inVout).scriptPubKey.hex}")
-              printAddresses("         address: ", prevTransaction.vout(inVout).scriptPubKey.addresses)
+            input.vout.fold[Unit](()){ inVout =>
+              val tout = prevTransaction.vout(inVout)
+              println(s"         value: ${tout.value}")
+              println(s"         script asm: ${tout.scriptPubKey.asm}")
+              println(s"         script hex: ${tout.scriptPubKey.hex}")
+              printAddresses("         address: ", tout.scriptPubKey.addresses)
             }
             input.vout.map(prevTransaction.vout(_).value.toBigDecimal).getOrElse(BigDecimal(0))
           }
@@ -114,9 +125,23 @@ object BitcoinSApiDemo extends App {
 //  val transWithUnspent = "e27ab49516f7b7b0a5bd5d7b4ced63b57ec590468aafe6c68f501cfeff79f3a6"
 //  getTransactionDemo(transWithUnspent)
 
+  def conversionOfHash160ToBitcoinAddressDemo(): Unit = {
+    println
+    val hash160 = "528453ff8ee784f18b4014ab4f2bd74894eef65f"
+    println(s"for hash160=$hash160")
+    println(s"bitcoin address=${P2PKHAddress(Sha256Hash160Digest(hash160), MainNet)}")
+  }
 
-  println(">>")
-  println(P2PKHAddress(Sha256Hash160Digest("528453ff8ee784f18b4014ab4f2bd74894eef65f"), MainNet))
+  def getTxOutProofDemo(): Unit = {
+    // want to prove that 0014f46aacf974d5ccf8e4f2f4ab561ea5523f7835fe or 17160014f46aacf974d5ccf8e4f2f4ab561ea5523f7835fe
+    // is a valid signature for
+    // public key hash: 528453ff8ee784f18b4014ab4f2bd74894eef65f
+    val hash160 = "528453ff8ee784f18b4014ab4f2bd74894eef65f"
+    val addr = P2PKHAddress(Sha256Hash160Digest(hash160), MainNet)
+    //rpcCli.verifyMessage(addr, "0014f46aacf974d5ccf8e4f2f4ab561ea5523f7835fe", )
+  }
+
+  conversionOfHash160ToBitcoinAddressDemo()
 
   System.exit(1)
 }
