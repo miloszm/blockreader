@@ -14,7 +14,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Try
 
-object BitcoinSApiDemo extends App {
+object BitcoinSTransactionApiDemo extends App {
   import org.bitcoins.core.config._
   import org.bitcoins.rpc.config._
   import org.bitcoins.rpc.client.common._
@@ -67,6 +67,7 @@ object BitcoinSApiDemo extends App {
     println("=" * 80)
     println(s"txid=${transaction.txid.hex}")
     println(s"hash=${transaction.hash}")
+    println(s"blockhash=${transaction.blockhash}")
     println(s"size=${transaction.size}")
     println(s"vsize=${transaction.vsize}")
     println(s"weight=${transaction.hex.weight}")
