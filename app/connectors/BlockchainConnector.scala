@@ -117,7 +117,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     doGetBlock(blockHash, blockHeight)
   }
 
-  def doGetBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def doGetBlock2(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
     val futureResponse = httpClient.get(s"https://blockchain.info/rawblock/$blockHash")
 
     futureResponse.flatMap { response =>
@@ -145,22 +145,8 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }
   }
 
-  def doGetBlock2(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
-    btcConn.getBlock(blockHash).map { b =>
-      val r = JsonBlock(0, blockHeight, b.txCount.toInt, b.transactions.map{ t =>
-        JsonTransaction(
-          Nil, //t.inputs.map(i => JsonInput(i.previousOutput.vout.toLong)),
-          t.outputs.map(o => JsonOutput(Some(o.value.satoshis.toLong), None, Some(o.scriptPubKey.toString))),
-          0L,// TODO
-          t.inputs.size,
-          t.outputs.size,
-          t.txId.hex,
-          t.totalSize.toInt,
-          t.lockTime.toLong
-        )
-      }, b.blockHeader.time.toLong)
-      Valid[JsonBlock](r)
-    }
+  def doGetBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+    BitcoinSBlockFutureApi.getMhmBlockWithClient(btcConn.rpcCli, blockHash, blockHeight)
   }
 
 }

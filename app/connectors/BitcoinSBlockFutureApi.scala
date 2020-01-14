@@ -39,7 +39,7 @@ object BitcoinSBlockFutureApi extends App {
 
   lazy val rpcCli = BitcoindRpcClient(bitcoindInstance)
 
-  def processTransactionInputs(inputs: Seq[GetRawTransactionVin]): Seq[JsonInput] = {
+  def processTransactionInputs(rpcCli: BitcoindRpcClient, inputs: Seq[GetRawTransactionVin]): Seq[JsonInput] = {
     for {
       i <- inputs
       txid <- i.txid
@@ -54,15 +54,21 @@ object BitcoinSBlockFutureApi extends App {
   }
 
   def getMhmBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+    getMhmBlockWithClient(rpcCli, blockHash, blockHeight)
+  }
+
+  def getMhmBlockWithClient(rpcCli: BitcoindRpcClient, blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
     val h = DoubleSha256DigestBE(blockHash)
     val blockFuture = rpcCli.getBlockRaw(h)
     var i = 0
-    blockFuture.map { blockResponse =>
+    val blockResponse = Await.result(blockFuture, 20 seconds)
+//    blockFuture.map { blockResponse =>
       val jsonTransactions = blockResponse.transactions.map { t =>
         val transactionFuture = rpcCli.getRawTransaction(t.txIdBE)
         val transaction = Await.result(transactionFuture, 20 seconds)
-        println(i); i = i + 1
-        val inputs = processTransactionInputs(transaction.vin)
+        print("."); i = i + 1
+        if (i % 200 == 0) println
+        val inputs = processTransactionInputs(rpcCli, transaction.vin)
         val outputs = transaction.vout.map{ o =>
           JsonOutput(Some(o.value.satoshis.toLong), Some("" + o.scriptPubKey.addresses), Some(o.scriptPubKey.asm))
         }
@@ -71,10 +77,10 @@ object BitcoinSBlockFutureApi extends App {
       val fee = jsonTransactions.map{ t =>
         t.inputs.flatMap(_.prev_out).flatMap(_.value).sum - t.out.flatMap(_.value).sum
       }.sum
-      Valid(JsonBlock(fee, blockHeight, blockResponse.txCount.toInt, jsonTransactions, blockResponse.blockHeader.time.toInt))
-    }.recover{ case e =>
-      Invalid(BlockReaderError(1, e.getMessage))
-    }
+      Future.successful(Valid(JsonBlock(fee, blockHeight, blockResponse.txCount.toInt, jsonTransactions, blockResponse.blockHeader.time.toInt)))
+//    }.recover{ case e =>
+//      Invalid(BlockReaderError(1, e.getMessage))
+//    }
   }
 
   val r = Await.result(getMhmBlock("00000000000000000010b5ded3990b193dbc359cb5525a2e95e94491f1dea590", 0), 500 seconds)
