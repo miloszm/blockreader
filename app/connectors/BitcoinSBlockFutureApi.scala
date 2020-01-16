@@ -47,18 +47,25 @@ object BitcoinSBlockFutureApi extends App {
 
   lazy val rpcCli = BitcoindRpcClient(bitcoindInstance)
 
-  def processTransactionInputs(rpcCli: BitcoindRpcClient, inputs: Seq[GetRawTransactionVin]): Seq[JsonInput] = {
-    for {
+  def processTransactionInputs(rpcCli: BitcoindRpcClient, inputs: Seq[GetRawTransactionVin]): Future[Seq[JsonInput]] = {
+    case class Inp(txid: DoubleSha256DigestBE, idx: Int)
+    val inps = for {
       i <- inputs
       txid <- i.txid
       ii <- i.vout
     } yield {
-      val prevTransactionFuture = rpcCli.getRawTransaction(txid)
-      val prevTransaction = Await.result(prevTransactionFuture, 20 seconds)
-      val prevOut = prevTransaction.vout(ii)
-      prevOut.value.toBigDecimal
-      JsonInput(Some(JsonOutput(Some(prevOut.value.toBigDecimal.toLong), Some("" + prevOut.scriptPubKey.addresses), Some(prevOut.scriptPubKey.asm))))
+      Inp(txid, ii)
     }
+
+    val inpSource = Source.apply[Inp](inps.toVector)
+    val s = inpSource.mapAsync(parallelism = 4) { inp =>
+      rpcCli.getRawTransaction(inp.txid).map { prevTransaction =>
+        val prevOut = prevTransaction.vout(inp.idx)
+        prevOut.value.toBigDecimal
+        JsonInput(Some(JsonOutput(Some(prevOut.value.toBigDecimal.toLong), Some("" + prevOut.scriptPubKey.addresses), Some(prevOut.scriptPubKey.asm))))
+      }
+    }.runWith(Sink.seq)
+    s
   }
 
   def getMhmBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
@@ -74,18 +81,20 @@ object BitcoinSBlockFutureApi extends App {
     val transactionsSource = Source.apply[Transaction](blockResponse.transactions.toVector)
       //.throttle(50, FiniteDuration(1, TimeUnit.SECONDS), 50, ThrottleMode.Shaping)
 
-    val jsonTransactionsFuture = transactionsSource.mapAsync(parallelism = 8) { t =>
-      rpcCli.getRawTransaction(t.txIdBE).map { transactionResult =>
+    val jsonTransactionsFuture = transactionsSource.mapAsync(parallelism = 6) { t =>
+      rpcCli.getRawTransaction(t.txIdBE).flatMap { transactionResult =>
         val nOfInputs = transactionResult.vin.size
-        print(if (nOfInputs <= 1) "." else s"[$nOfInputs]")
+        print(if (nOfInputs <= 1) "..." else s"[$nOfInputs]")
         i = i + 1
-        if (i % 100 == 0) println
+        if (i % 50 == 0) println
         if (i % 1000 == 0) println(s"done:$i")
-        val inputs = processTransactionInputs(rpcCli, transactionResult.vin)
-        val outputs = transactionResult.vout.map { o =>
-          JsonOutput(Some(o.value.satoshis.toLong), Some("" + o.scriptPubKey.addresses), Some(o.scriptPubKey.asm))
+        val inputsFuture = processTransactionInputs(rpcCli, transactionResult.vin)
+        inputsFuture.map { inputs =>
+          val outputs = transactionResult.vout.map { o =>
+            JsonOutput(Some(o.value.satoshis.toLong), Some("" + o.scriptPubKey.addresses), Some(o.scriptPubKey.asm))
+          }
+          JsonTransaction(inputs, outputs, 0, inputs.size, outputs.size, transactionResult.hash.hex, transactionResult.size, transactionResult.time.map(_.toLong).getOrElse(0L))
         }
-        JsonTransaction(inputs, outputs, 0, inputs.size, outputs.size, transactionResult.hash.hex, transactionResult.size, transactionResult.time.map(_.toLong).getOrElse(0L))
       }
     }.runWith(Sink.seq)
     jsonTransactionsFuture.map { jsonTransactions =>
