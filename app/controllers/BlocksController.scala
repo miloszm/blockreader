@@ -2,11 +2,11 @@ package controllers
 
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
-import javax.inject._
 
+import javax.inject._
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Sink, Source}
-import akka.stream.{ActorMaterializer, ThrottleMode}
+import akka.stream.{ActorMaterializer, Materializer, ThrottleMode}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import connectors.BlockchainConnector
@@ -90,7 +90,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
     }
   }
 
-  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks]): Future[Seq[Validated[BlockReaderError, RichBlock]]] = {
+  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks])(implicit mat: Materializer): Future[Seq[Validated[BlockReaderError, RichBlock]]] = {
     blocks match {
       case Valid(bl) =>
         produceRichBlockEntries(bl)
@@ -98,11 +98,11 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
     }
   }
 
-  private def produceRichBlockEntries(bl: JsonBlocks): Future[Seq[Valid[RichBlock]]] = {
+  private def produceRichBlockEntries(bl: JsonBlocks)(implicit mat: Materializer): Future[Seq[Valid[RichBlock]]] = {
     val source = Source.apply[JsonBlockEntry](bl.blocks.toList)
       .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
 
-    val richBlockEntrySource = source.mapAsync(parallelism = 10) { jsonBlockEntry =>
+    val richBlockEntrySource = source.mapAsync(parallelism = 3) { jsonBlockEntry =>
       cache.get[RichBlock](jsonBlockEntry.height.toString) match {
         case Some(richBlockEntry) =>
           logger.info(s"got from cache block ${jsonBlockEntry.height}")

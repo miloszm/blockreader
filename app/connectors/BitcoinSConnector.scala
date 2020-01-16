@@ -36,7 +36,7 @@ class BitcoinSConnector {
 
   implicit val ec: ExecutionContext = ExecutionContext.global
 
-  lazy val rpcCli = BitcoindRpcClient(bitcoindInstance)
+  val rpcCli = BitcoindRpcClient(bitcoindInstance)
 
   def getInfo() = {
     val infoFuture = rpcCli.getBlockChainInfo

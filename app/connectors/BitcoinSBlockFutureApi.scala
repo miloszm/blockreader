@@ -4,7 +4,7 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, ThrottleMode}
+import akka.stream.{ActorMaterializer, Materializer, ThrottleMode}
 import akka.stream.scaladsl.{Sink, Source}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
@@ -16,38 +16,40 @@ import org.bitcoins.rpc.jsonmodels.GetRawTransactionVin
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
+import javax.inject.Singleton
 
-
-object BitcoinSBlockFutureApi extends App {
+@Singleton
+class BitcoinSBlockFutureApi {
   import org.bitcoins.core.config._
   import org.bitcoins.rpc.client.common._
   import org.bitcoins.rpc.config._
+
   implicit val system = ActorSystem("blockreader")
-  implicit val materializer = ActorMaterializer()
+  //implicit val materializer = ActorMaterializer()
 
 
-  val username = "foo" //this username comes from 'rpcuser' in your bitcoin.conf file
-  val password = "bar" //this password comes from your 'rpcpassword' in your bitcoin.conf file
-
-  val authCredentials = BitcoindAuthCredentials.PasswordBased(
-    username = username,
-    password = password
-  )
-
-  val bitcoindInstance = {
-    BitcoindInstance (
-      network = MainNet,
-      uri = new URI(s"http://localhost:${MainNet.port}"),
-      rpcUri = new URI(s"http://localhost:${MainNet.rpcPort}"),
-      authCredentials = authCredentials
-    )
-  }
+//  val username = "foo" //this username comes from 'rpcuser' in your bitcoin.conf file
+//  val password = "bar" //this password comes from your 'rpcpassword' in your bitcoin.conf file
+//
+//  val authCredentials = BitcoindAuthCredentials.PasswordBased(
+//    username = username,
+//    password = password
+//  )
+//
+//  val bitcoindInstance = {
+//    BitcoindInstance (
+//      network = MainNet,
+//      uri = new URI(s"http://localhost:${MainNet.port}"),
+//      rpcUri = new URI(s"http://localhost:${MainNet.rpcPort}"),
+//      authCredentials = authCredentials
+//    )
+//  }
 
   implicit val ec: ExecutionContext = ExecutionContext.global
 
-  lazy val rpcCli = BitcoindRpcClient(bitcoindInstance)
+  //lazy val rpcCli = BitcoindRpcClient(bitcoindInstance)
 
-  def processTransactionInputs(rpcCli: BitcoindRpcClient, inputs: Seq[GetRawTransactionVin]): Future[Seq[JsonInput]] = {
+  def processTransactionInputs(rpcCli: BitcoindRpcClient, inputs: Seq[GetRawTransactionVin])(implicit mat: Materializer): Future[Seq[JsonInput]] = {
     case class Inp(txid: DoubleSha256DigestBE, idx: Int)
     val inps = for {
       i <- inputs
@@ -57,8 +59,8 @@ object BitcoinSBlockFutureApi extends App {
       Inp(txid, ii)
     }
 
-    val inpSource = Source.apply[Inp](inps.toVector)
-    val s = inpSource.mapAsync(parallelism = 4) { inp =>
+    val inpSource = Source.apply[Inp](inps.toList)
+    val s = inpSource.mapAsync(parallelism = 3) { inp =>
       rpcCli.getRawTransaction(inp.txid).map { prevTransaction =>
         val prevOut = prevTransaction.vout(inp.idx)
         prevOut.value.toBigDecimal
@@ -68,20 +70,21 @@ object BitcoinSBlockFutureApi extends App {
     s
   }
 
-  def getMhmBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
-    getMhmBlockWithClient(rpcCli, blockHash, blockHeight)
-  }
+//  def getMhmBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+//    getMhmBlockWithClient(rpcCli, blockHash, blockHeight)
+//  }
 
-  def getMhmBlockWithClient(rpcCli: BitcoindRpcClient, blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def getMhmBlockWithClient(rpcCli: BitcoindRpcClient, blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
     val h = DoubleSha256DigestBE(blockHash)
     val blockFuture = rpcCli.getBlockRaw(h)
     var i = 0
     val blockResponse = Await.result(blockFuture, 20 seconds)
 
-    val transactionsSource = Source.apply[Transaction](blockResponse.transactions.toVector)
+    println(s"n of trans: ${blockResponse.transactions.toList.size}")
+    val transactionsSource = Source.apply[Transaction](blockResponse.transactions.toList)
       //.throttle(50, FiniteDuration(1, TimeUnit.SECONDS), 50, ThrottleMode.Shaping)
 
-    val jsonTransactionsFuture = transactionsSource.mapAsync(parallelism = 6) { t =>
+    val jsonTransactionsFuture = transactionsSource.mapAsync(parallelism = 4) { t =>
       rpcCli.getRawTransaction(t.txIdBE).flatMap { transactionResult =>
         val nOfInputs = transactionResult.vin.size
         print(if (nOfInputs <= 1) "..." else s"[$nOfInputs]")
@@ -107,9 +110,10 @@ object BitcoinSBlockFutureApi extends App {
     }
   }
 
-  val r = Await.result(getMhmBlock("00000000000000000010b5ded3990b193dbc359cb5525a2e95e94491f1dea590", 0), 500 seconds)
-  println(r)
 
-
-  System.exit(1)
+//  val r = Await.result(getMhmBlock("00000000000000000010b5ded3990b193dbc359cb5525a2e95e94491f1dea590", 0), 500 seconds)
+//  println(r)
+//
+//
+//  System.exit(1)
 }

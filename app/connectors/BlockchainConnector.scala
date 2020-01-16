@@ -6,7 +6,7 @@ import javax.inject.{Inject, Singleton}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
 import connectors.BlockchainConnector.toEpochMilli
@@ -36,16 +36,16 @@ object Formats {
 }
 
 @Singleton
-case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpClient, btcConn: BitcoinSConnector) {
+case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpClient, btcConn: BitcoinSConnector, blockApi: BitcoinSBlockFutureApi) {
   import Formats._
 
   implicit val system: ActorSystem = ActorSystem("blockreader")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  //implicit val materializer: ActorMaterializer = ActorMaterializer()
   val logger = Logger
 
   def getLatestBlock: Future[Int] = btcConn.getLatestBlock
 
-  def getUsdPrice: Future[BigDecimal] = {
+  def getUsdPrice(implicit mat: Materializer): Future[BigDecimal] = {
     val request = httpClient.get(s"https://blockchain.info/ticker")
     val futureResponse = request
     futureResponse.flatMap { response =>
@@ -56,7 +56,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }.map(x => x.map(_.`USD`.`15m`).map(_.setScale(2, RoundingMode.FLOOR)).getOrElse(0))
   }
 
-  def getBlocks: Future[Validated[BlockReaderError, JsonBlocks]] = {
+  def getBlocks(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlocks]] = {
     getLatestBlock.flatMap { latestBlock =>
       val currentFeeResult = cache.get("feeresult").getOrElse(FeeResult.empty)
       if (currentFeeResult.topBlock == latestBlock && !currentFeeResult.emptyBlocksExist){
@@ -79,7 +79,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }
   }
 
-  def doGetBlocks(dateTime:LocalDateTime): Future[Validated[BlockReaderError, JsonBlocks]] = {
+  def doGetBlocks(dateTime:LocalDateTime)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlocks]] = {
     // https://api.blockcypher.com/v1/btc/main/blocks/294322?txstart=1&limit=1 // use blockcypher as blockchain.info/blocks stopped working
     // dont need to convert block height to hashes as blockcypher has API based on height so we can skip this step
     // also, we can assume 24*6 blocks per day plus some extra, and then filter by time
@@ -113,11 +113,11 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }
   }
 
-  def getBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def getBlock(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
     doGetBlock(blockHash, blockHeight)
   }
 
-  def doGetBlock2(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def doGetBlock2(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
     val futureResponse = httpClient.get(s"https://blockchain.info/rawblock/$blockHash")
 
     futureResponse.flatMap { response =>
@@ -145,8 +145,8 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }
   }
 
-  def doGetBlock(blockHash: String, blockHeight: Int): Future[Validated[BlockReaderError, JsonBlock]] = {
-    BitcoinSBlockFutureApi.getMhmBlockWithClient(btcConn.rpcCli, blockHash, blockHeight)
+  def doGetBlock(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
+    blockApi.getMhmBlockWithClient(btcConn.rpcCli, blockHash, blockHeight)
   }
 
 }
