@@ -1,6 +1,7 @@
 package model.json
 
 import model.domain._
+import stats.StatCalc
 
 case class JsonOutput(value: Option[Long], addr: Option[String], script: Option[String] = None) {
   def toOutput = value.map(v => Output(v))
@@ -38,7 +39,7 @@ case class JsonTransaction(
     val outWithoutRest = out.filterNot(o => containsAddress(inputAddresses, o.addr))
     val sumOutputs: Long = outputs.sum
     val fees = sumInputs - sumOutputs
-    val maxValueNotHavingInputAddress = outWithoutRest.flatMap(_.toOutput).map(_.value).max
+    val maxValueNotHavingInputAddress = StatCalc.safeMax(outWithoutRest.flatMap(_.toOutput).map(_.value))
     val maxValueWrapper = MaxValue(
       maxValueNotHavingInputAddress,
       out.filter(_.value.contains(maxValueNotHavingInputAddress)).flatMap(_.addr).headOption.getOrElse(""),
