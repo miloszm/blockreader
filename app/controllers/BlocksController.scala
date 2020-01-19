@@ -1,5 +1,6 @@
 package controllers
 
+import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
@@ -13,6 +14,7 @@ import connectors.BlockchainConnector
 import model._
 import model.domain.{EmptyBlock, RichBlock, Transactions}
 import model.json.{JsonBlockEntry, JsonBlocks}
+import org.joda.time.LocalTime
 import play.api.Logger
 import play.api.cache.SyncCacheApi
 import play.api.mvc._
@@ -113,7 +115,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
             case Valid(jb) =>
               val rbe = RichBlock(jsonBlockEntry.toBlockId, jb.toBlock)
               cache.set(jsonBlockEntry.height.toString, rbe)
-              logger.info(s"added to cache block ${jsonBlockEntry.height}")
+              logger.info(s"added to cache block ${jsonBlockEntry.height}   ${LocalDateTime.ofEpochSecond(jsonBlockEntry.time, 0, ZoneOffset.UTC).toString}")
               Valid(rbe)
             case Invalid(e) =>
               logger.info(s"invalid block entry ${jsonBlockEntry.height} ${e.message}")
