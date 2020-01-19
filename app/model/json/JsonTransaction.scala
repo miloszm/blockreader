@@ -25,15 +25,24 @@ case class JsonTransaction(
                           ) {
   def toTransaction = Transaction(inputs.flatMap(_.toInput), out.flatMap(_.toOutput), tx_index, hash, size, time)
   def toFeeOnlyTransaction(height: Long, index: Int, blockTime: Long) = {
+    def containsAddress(addresses: Seq[String], address: Option[String]): Boolean = {
+      address match {
+        case Some(a) => addresses.contains(a)
+        case None => false
+      }
+    }
+
     val sumInputs: Long = inputs.flatMap(_.toInput).map(_.value).sum
+    val inputAddresses = inputs.flatMap(_.prev_out).flatMap(prevOut => prevOut.addr)
     val outputs = out.flatMap(_.toOutput).map(_.value)
+    val outWithoutRest = out.filterNot(o => containsAddress(inputAddresses, o.addr))
     val sumOutputs: Long = outputs.sum
     val fees = sumInputs - sumOutputs
-    val maxValue = outputs.max
+    val maxValueNotHavingInputAddress = outWithoutRest.flatMap(_.toOutput).map(_.value).max
     val maxValueWrapper = MaxValue(
-      maxValue,
-      out.filter(_.value.contains(maxValue)).flatMap(_.addr).headOption.getOrElse(""),
-      out.filter(_.value.contains(maxValue)).flatMap(_.script).headOption.getOrElse("")
+      maxValueNotHavingInputAddress,
+      out.filter(_.value.contains(maxValueNotHavingInputAddress)).flatMap(_.addr).headOption.getOrElse(""),
+      out.filter(_.value.contains(maxValueNotHavingInputAddress)).flatMap(_.script).headOption.getOrElse("")
     )
     FeeOnlyTransaction(height, index, fees, maxValueWrapper, size, time, blockTime)
   }
