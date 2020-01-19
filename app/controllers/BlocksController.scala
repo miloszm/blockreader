@@ -67,11 +67,11 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
 //    fetchBlocksUpdateFeeResultInCache()
 //  }
 
-  def fetchBlocksUpdateFeeResultInCache(): Future[Unit/*Result*/] = {
+  def fetchBlocksUpdateFeeResultInCache(local: Boolean): Future[Unit/*Result*/] = {
     val futureUsdPrice = blockchainConnector.getUsdPrice
     futureUsdPrice.flatMap { usdPrice => {
       val futureValRichBlocks = blockchainConnector.getBlocks
-      val futSeqValidated = futureValRichBlocks.flatMap(enrichBlocks)
+      val futSeqValidated = futureValRichBlocks.flatMap(enrichBlocks(_, local))
       futSeqValidated.map { seqValidated =>
         val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
         valid match {
@@ -90,15 +90,15 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
     }
   }
 
-  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks])(implicit mat: Materializer): Future[Seq[Validated[BlockReaderError, RichBlock]]] = {
+  def enrichBlocks(blocks: Validated[BlockReaderError, JsonBlocks], local: Boolean)(implicit mat: Materializer): Future[Seq[Validated[BlockReaderError, RichBlock]]] = {
     blocks match {
       case Valid(bl) =>
-        produceRichBlockEntries(bl)
+        produceRichBlockEntries(bl, local)
       case Invalid(e) =>Future.successful(Seq(Invalid(e)))
     }
   }
 
-  private def produceRichBlockEntries(bl: JsonBlocks)(implicit mat: Materializer): Future[Seq[Valid[RichBlock]]] = {
+  private def produceRichBlockEntries(bl: JsonBlocks, local: Boolean)(implicit mat: Materializer): Future[Seq[Valid[RichBlock]]] = {
     val source = Source.apply[JsonBlockEntry](bl.blocks.toList)
       .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
 
@@ -108,7 +108,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
           logger.info(s"got from cache block ${jsonBlockEntry.height}")
           Future.successful(Valid(richBlockEntry))
         case _ => {
-          val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height)
+          val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height, local)
           response map {
             case Valid(jb) =>
               val rbe = RichBlock(jsonBlockEntry.toBlockId, jb.toBlock)

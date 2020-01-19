@@ -63,8 +63,7 @@ class BitcoinSBlockFutureApi {
     val s = inpSource.mapAsync(parallelism = 3) { inp =>
       rpcCli.getRawTransaction(inp.txid).map { prevTransaction =>
         val prevOut = prevTransaction.vout(inp.idx)
-        prevOut.value.toBigDecimal
-        JsonInput(Some(JsonOutput(Some(prevOut.value.toBigDecimal.toLong), Some("" + prevOut.scriptPubKey.addresses), Some(prevOut.scriptPubKey.asm))))
+        JsonInput(Some(JsonOutput(Some(prevOut.value.satoshis.toLong), Some("" + prevOut.scriptPubKey.addresses), Some(prevOut.scriptPubKey.asm))))
       }
     }.runWith(Sink.seq)
     s
@@ -80,31 +79,27 @@ class BitcoinSBlockFutureApi {
     var i = 0
     val blockResponse = Await.result(blockFuture, 20 seconds)
 
-    println(s"n of trans: ${blockResponse.transactions.toList.size}")
+    println(s"Getting locally block: $blockHeight of size ${blockResponse.transactions.toList.size}")
     val transactionsSource = Source.apply[Transaction](blockResponse.transactions.toList)
       //.throttle(50, FiniteDuration(1, TimeUnit.SECONDS), 50, ThrottleMode.Shaping)
 
     val jsonTransactionsFuture = transactionsSource.mapAsync(parallelism = 4) { t =>
       rpcCli.getRawTransaction(t.txIdBE).flatMap { transactionResult =>
         val nOfInputs = transactionResult.vin.size
-        print(if (nOfInputs <= 1) "..." else s"[$nOfInputs]")
+        //print(if (nOfInputs <= 1) "..." else s"[$nOfInputs]")
         i = i + 1
-        if (i % 50 == 0) println
-        if (i % 1000 == 0) println(s"done:$i")
+        if (i % 50 == 0) print(s" $i ")
         val inputsFuture = processTransactionInputs(rpcCli, transactionResult.vin)
         inputsFuture.map { inputs =>
           val outputs = transactionResult.vout.map { o =>
             JsonOutput(Some(o.value.satoshis.toLong), Some("" + o.scriptPubKey.addresses), Some(o.scriptPubKey.asm))
           }
-          JsonTransaction(inputs, outputs, 0, inputs.size, outputs.size, transactionResult.hash.hex, transactionResult.size, transactionResult.time.map(_.toLong).getOrElse(0L))
+          JsonTransaction(inputs, outputs, 0, inputs.size, outputs.size, transactionResult.txid.hex, transactionResult.size, transactionResult.time.map(_.toLong).getOrElse(0L))
         }
       }
     }.runWith(Sink.seq)
     jsonTransactionsFuture.map { jsonTransactions =>
-      val fee = jsonTransactions.map { t =>
-        t.inputs.flatMap(_.prev_out).flatMap(_.value).sum - t.out.flatMap(_.value).sum
-      }.sum
-      Valid(JsonBlock(fee, blockHeight, blockResponse.txCount.toInt, jsonTransactions, blockResponse.blockHeader.time.toInt))
+      Valid(JsonBlock(0, blockHeight, blockResponse.txCount.toInt, jsonTransactions, blockResponse.blockHeader.time.toInt))
     }.recover{ case e =>
     Invalid(BlockReaderError(1, e.getMessage))
     }

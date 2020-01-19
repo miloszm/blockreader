@@ -20,11 +20,13 @@ class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycl
   val logger = Logger
 
   class BlockPoller extends Actor {
+    var local = false
     override def receive: Actor.Receive = {
       case _:String => {
         logger.info("scheduled block fetch")
-        val fut = blocksController.fetchBlocksUpdateFeeResultInCache()
-        Await.result[Unit](fut, Duration(30, duration.MINUTES))
+        val fut = blocksController.fetchBlocksUpdateFeeResultInCache(local)
+        Await.result[Unit](fut, Duration(30, duration.HOURS))
+        local = true
         sender ! "answer"
       }
     }
@@ -36,9 +38,9 @@ class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycl
 
   val blockPoller = blocksController.system.actorOf(BlockPoller.props, name = "blockpoller")
   def askPollerAndWait: Unit = {
-    implicit val timeout = Timeout(30 minutes)
+    implicit val timeout = Timeout(30 hours)
     val fut = blockPoller ? "a"
-    Await.result[Any](fut, Duration(30, duration.MINUTES))
+    Await.result[Any](fut, Duration(30, duration.HOURS))
     blocksController.system.scheduler.scheduleOnce(30.seconds)(askPollerAndWait)
   }
   // comment out to turn off
