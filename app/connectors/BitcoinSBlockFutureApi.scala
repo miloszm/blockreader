@@ -86,13 +86,12 @@ class BitcoinSBlockFutureApi {
     val jsonTransactionsFuture = transactionsSource.mapAsync(parallelism = 4) { t =>
       rpcCli.getRawTransaction(t.txIdBE).flatMap { transactionResult =>
         val nOfInputs = transactionResult.vin.size
-        //print(if (nOfInputs <= 1) "..." else s"[$nOfInputs]")
-        i = i + 1
         if (i % 50 == 0) print(s" $i ")
+        i = i + 1
         val inputsFuture = processTransactionInputs(rpcCli, transactionResult.vin)
         inputsFuture.map { inputs =>
           val outputs = transactionResult.vout.map { o =>
-            JsonOutput(Some(o.value.satoshis.toLong), Some("" + o.scriptPubKey.addresses), Some(o.scriptPubKey.asm))
+            JsonOutput(Some(o.value.satoshis.toLong), o.scriptPubKey.addresses.map(_.mkString(",")), Some(o.scriptPubKey.asm))
           }
           JsonTransaction(inputs, outputs, 0, inputs.size, outputs.size, transactionResult.txid.hex, transactionResult.size, transactionResult.time.map(_.toLong).getOrElse(0L))
         }

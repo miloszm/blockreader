@@ -23,7 +23,9 @@ class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycl
     var local = false
     override def receive: Actor.Receive = {
       case _:String => {
-        logger.info("scheduled block fetch")
+        if (!local){
+          logger.info("scheduled non-local block fetch")
+        }
         val fut = blocksController.fetchBlocksUpdateFeeResultInCache(local)
         Await.result[Unit](fut, Duration(30, duration.HOURS))
         local = true

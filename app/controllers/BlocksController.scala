@@ -105,7 +105,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
     val richBlockEntrySource = source.mapAsync(parallelism = 3) { jsonBlockEntry =>
       cache.get[RichBlock](jsonBlockEntry.height.toString) match {
         case Some(richBlockEntry) =>
-          logger.info(s"got from cache block ${jsonBlockEntry.height}")
+          //logger.info(s"got from cache block ${jsonBlockEntry.height}")
           Future.successful(Valid(richBlockEntry))
         case _ => {
           val response = blockchainConnector.getBlock(jsonBlockEntry.hash, jsonBlockEntry.height, local)
