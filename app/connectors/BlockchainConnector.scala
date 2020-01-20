@@ -1,6 +1,6 @@
 package connectors
 
-import java.time.{LocalDate, LocalDateTime, ZoneId}
+import java.time.{LocalDate, LocalDateTime, ZoneId, ZoneOffset}
 
 import javax.inject.{Inject, Singleton}
 import akka.actor.ActorSystem
@@ -63,7 +63,10 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
         Future.successful(Valid(JsonBlocks(Nil)))
       }
       else {
-        val d1 = doGetBlocks(LocalDateTime.now)
+        val momentNow = LocalDateTime.now
+        val cutOffTime = momentNow.minusHours(24).minusMinutes(5)
+        val cutOffTimeEpoch = cutOffTime.atOffset(ZoneOffset.UTC).toEpochSecond
+        val d1 = doGetBlocks(momentNow)
         //val d1 = doGetBlocks(LocalDateTime.now).map(_.map(b => b.copy(blocks = b.blocks.take(4))))
         val d2 = doGetBlocks(LocalDate.now.atStartOfDay().minusSeconds(2))
         //val d2 = Future.successful(Valid(JsonBlocks(Nil)))
@@ -72,9 +75,9 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
           v2 <- d2
         } yield v1.combine(v2)(BlockReaderError, JsonBlocks)
         futValBlocks.map { valBlocks =>
-          valBlocks.map { blocks =>
-            val sortedBlocks = JsonBlocks(blocks.blocks.sortWith((a, b) => a.time >= b.time))
-            sortedBlocks
+          valBlocks.map { jsonBlocks =>
+            val sortedBlocks = JsonBlocks(jsonBlocks.blocks.sortWith((a, b) => a.time >= b.time))
+            JsonBlocks(sortedBlocks.blocks.filter(_.time >= cutOffTimeEpoch))
           }
         }
       }

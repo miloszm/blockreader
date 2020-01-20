@@ -2,6 +2,7 @@ package connectors
 
 import java.net.URI
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer, ThrottleMode}
@@ -76,7 +77,7 @@ class BitcoinSBlockFutureApi {
   def getMhmBlockWithClient(rpcCli: BitcoindRpcClient, blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
     val h = DoubleSha256DigestBE(blockHash)
     val blockFuture = rpcCli.getBlockRaw(h)
-    var i = 0
+    val i = new AtomicLong(0L)
     val blockResponse = Await.result(blockFuture, 20 seconds)
 
     println(s"Getting locally block: $blockHeight of size ${blockResponse.transactions.toList.size}")
@@ -85,9 +86,7 @@ class BitcoinSBlockFutureApi {
 
     val jsonTransactionsFuture = transactionsSource.mapAsync(parallelism = 4) { t =>
       rpcCli.getRawTransaction(t.txIdBE).flatMap { transactionResult =>
-        val nOfInputs = transactionResult.vin.size
-        if (i % 50 == 0) print(s" $i ")
-        i = i + 1
+        if (i.incrementAndGet() % 50 == 0) print(s" $i ")
         val inputsFuture = processTransactionInputs(rpcCli, transactionResult.vin)
         inputsFuture.map { inputs =>
           val outputs = transactionResult.vout.map { o =>

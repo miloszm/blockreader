@@ -3,6 +3,7 @@ package model.domain
 import java.time.LocalDateTime
 
 import connectors.BlockchainConnector
+import model.PeriodSummary
 import stats.StatCalc
 
 import scala.math.BigDecimal.RoundingMode
@@ -24,11 +25,11 @@ case class Transactions(all: Seq[FeeOnlyTransaction]){
   def totalMedianLast24h01Blocks: Long = StatCalc.median(last24h01Blocks.map(_.feePerByte))
   def totalMedianLast2h: Long = StatCalc.median(last2h.map(_.feePerByte))
   def totalMedianLast2h01Blocks: Long = StatCalc.median(last2h01Blocks.map(_.feePerByte))
-  def medianLast12Periods2hEach: Seq[(String,Long,String,String,String)] = {
+  def medianLast12Periods2hEach: Seq[PeriodSummary] = {
     val currentHour = LocalDateTime.now.getHour
     (24 to 2 by -2).map { i =>
       val maxValueWrapper = StatCalc.safeMaxValue(last24h.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.maxValue))
-      (
+      PeriodSummary(
         s"${(currentHour + 24 - i) % 24}:00-${(currentHour + 24 - i + 2) % 24}:00",
         StatCalc.median(last24h01Blocks.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.feePerByte)),
         {
