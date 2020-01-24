@@ -13,6 +13,8 @@ import connectors.BlockchainConnector.toEpochMilli
 import model.json._
 import model.{BlockReaderError, _}
 import play.api.Logger
+
+import scala.util.{Failure, Success, Try}
 //import play.api.Play.current
 import play.api.cache.SyncCacheApi
 import play.api.libs.json.Json
@@ -51,7 +53,12 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     futureResponse.flatMap { response =>
       val jsonResponse = Unmarshal(response.entity).to[String]
       jsonResponse.map{string =>
-        Json.parse(string).validate[JsonPriceTicker].asOpt
+        Try { Json.parse(string).validate[JsonPriceTicker].asOpt }.fold(
+          t => {
+            logger.info(s"exception caught when getting/converting price: ${t.getMessage}", t)
+            Some(JsonPriceTicker(JsonUsdPrice(0)))
+          }, identity
+        )
       }
     }.map(x => x.map(_.`USD`.`15m`).map(_.setScale(2, RoundingMode.FLOOR)).getOrElse(0))
   }
