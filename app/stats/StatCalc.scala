@@ -14,4 +14,8 @@ object StatCalc {
   }
   def safeMax(seq: Seq[Long]): Long = if (seq.isEmpty) 0L else seq.max
   def safeMaxValue(seq: Seq[MaxValue]): MaxValue = if (seq.isEmpty) MaxValue(0L, "","") else seq.max
+  def safeMaxNValues(seq: Seq[MaxValue], n: Int): Seq[MaxValue] = if (seq.isEmpty) Nil else {
+    val nValues = seq.sortBy(_.value).takeRight(n)
+    nValues.reverse
+  }
 }

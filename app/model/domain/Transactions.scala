@@ -9,6 +9,7 @@ import stats.StatCalc
 import scala.math.BigDecimal.RoundingMode
 
 case class Transactions(all: Seq[FeeOnlyTransaction]){
+  val NumMaxValues = 5
   def now = BlockchainConnector.toEpochMilli(LocalDateTime.now)
   val last24h: Seq[FeeOnlyTransaction] = all.filter(now - _.time*1000 < 24*3600*1000)
   val last24h01Blocks = last24h.filter(_.ageInBlocks < 2)
@@ -28,16 +29,11 @@ case class Transactions(all: Seq[FeeOnlyTransaction]){
   def medianLast12Periods2hEach: Seq[PeriodSummary] = {
     val currentHour = LocalDateTime.now.getHour
     (24 to 2 by -2).map { i =>
-      val maxValueWrapper = StatCalc.safeMaxValue(last24h.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.maxValue))
+      val maxValueWrapper = StatCalc.safeMaxNValues(last24h.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.maxValue), NumMaxValues)
       PeriodSummary(
         s"${(currentHour + 24 - i) % 24}:00-${(currentHour + 24 - i + 2) % 24}:00",
         StatCalc.median(last24h01Blocks.filter(t => (now - t.time * 1000 < i * 3600 * 1000) && (now - t.time * 1000 > (i - 2) * 3600 * 1000)).map(_.feePerByte)),
-        {
-          val maxValue = BigDecimal(maxValueWrapper.value) / BigDecimal(100000000)
-          if (maxValue.equals(BigDecimal(0))) "0" else maxValue.setScale(8, RoundingMode.FLOOR).toString()
-        },
-        maxValueWrapper.address,
-        maxValueWrapper.script
+        maxValueWrapper
       )
     }
   }

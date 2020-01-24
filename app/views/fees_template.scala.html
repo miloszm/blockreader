@@ -120,9 +120,11 @@
             <tr>
                 <td>@{periodSummary.period}</td>
                 <td>@{periodSummary.fee.toString}</td>
-                <td>@{periodSummary.maxValue}</td>
-                <td>@{periodSummary.address}</td>
-                <td>@{periodSummary.script}</td>
+                @for(mv <- periodSummary.maxValue) {
+                    <td>@{mv.valueAsStr}</td>
+                    <td>@{mv.address}</td>
+                    <td>@{mv.script}</td>
+                }
             </tr>
         }
         </tbody>

@@ -1,6 +1,6 @@
 package model
 
-import model.domain.Transactions
+import model.domain.{MaxValue, Transactions}
 
 case class FeeResult
 (
@@ -60,18 +60,18 @@ object FeeResult {
     145,
     155,
     Seq(
-      PeriodSummary("8:00-10:00", 150, "0", "", ""),
-      PeriodSummary("10:00-12:00", 140, "0", "", ""),
-      PeriodSummary("12:00-14:00", 130, "0", "", ""),
-      PeriodSummary("14:00-16:00", 140, "0", "", ""),
-      PeriodSummary("16:00-18:00", 150, "0", "", ""),
-      PeriodSummary("18:00-20:00", 140, "0", "", ""),
-      PeriodSummary("20:00-22:00", 120, "0", "", ""),
-      PeriodSummary("22:00-00:00", 110, "0", "", ""),
-      PeriodSummary("00:00-02:00", 120, "0", "", ""),
-      PeriodSummary("02:00-04:00", 125, "0", "", ""),
-      PeriodSummary("04:00-06:00", 135, "0", "", ""),
-      PeriodSummary("06:00-08:00", 150, "0", "", "")
+      PeriodSummary("8:00-10:00" , 150, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("10:00-12:00", 140, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("12:00-14:00", 130, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("14:00-16:00", 140, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("16:00-18:00", 150, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("18:00-20:00", 140, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("20:00-22:00", 120, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("22:00-00:00", 110, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("00:00-02:00", 120, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("02:00-04:00", 125, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("04:00-06:00", 135, Seq(MaxValue(0, "", ""))),
+      PeriodSummary("06:00-08:00", 150, Seq(MaxValue(0, "", "")))
     ),
     155,
     0.00027,
