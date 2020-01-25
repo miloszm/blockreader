@@ -43,7 +43,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
 
   implicit val system: ActorSystem = ActorSystem("blockreader")
   //implicit val materializer: ActorMaterializer = ActorMaterializer()
-  val logger = Logger
+  val logger = Logger("blockreader")
 
   def getLatestBlock: Future[Int] = btcConn.getLatestBlock
 

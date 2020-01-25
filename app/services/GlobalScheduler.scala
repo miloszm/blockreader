@@ -1,8 +1,8 @@
 package services
 
 import java.time.Clock
-import javax.inject.{Inject, Singleton}
 
+import javax.inject.{Inject, Singleton}
 import akka.actor.{Actor, Props}
 import akka.pattern.ask
 import akka.util.Timeout
@@ -10,14 +10,15 @@ import controllers.BlocksController
 import play.api.Logger
 import play.api.inject.ApplicationLifecycle
 
-import scala.concurrent.{Await, duration}
+import scala.concurrent.{Await, Future, duration}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycle, blocksController: BlocksController) {
 
-  val logger = Logger
+  val logger = Logger("blockreader")
 
   class BlockPoller extends Actor {
     var local = false
@@ -26,7 +27,12 @@ class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycl
         if (!local){
           logger.info("scheduled non-local block fetch")
         }
-        val fut = blocksController.fetchBlocksUpdateFeeResultInCache(local)
+        val fut = Try {blocksController.fetchBlocksUpdateFeeResultInCache(local)} match {
+          case Success(f) => f
+          case Failure(t) =>
+            logger.info("error in block poller", t)
+            Future.successful(())
+        }
         Await.result[Unit](fut, Duration(30, duration.HOURS))
         local = true
         sender ! "answer"
