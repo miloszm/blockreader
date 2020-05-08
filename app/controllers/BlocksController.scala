@@ -23,6 +23,7 @@ import views.html._
 import scala.collection.immutable.Seq
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, blockchainConnector: BlockchainConnector)(implicit exec: ExecutionContext) extends Controller {
@@ -73,6 +74,17 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
     val futureUsdPrice = blockchainConnector.getUsdPrice
     futureUsdPrice.flatMap { usdPrice => {
       val futureValRichBlocks = blockchainConnector.getBlocks
+      futureValRichBlocks.onComplete{ _ match {
+        case Success(result) => result match {
+          case Valid(jsonBlocks) =>
+            logger.info(s"BlocksController: obtained ${jsonBlocks.blocks.size} blocks")
+          case Invalid(y) =>
+            logger.info(s"BlocksController: error when getting blocks: ${y.message}")
+        }
+        case Failure(e) =>
+          logger.info("BlocksController: exception when getting blocks", e)
+      }
+      }
       val futSeqValidated = futureValRichBlocks.flatMap(enrichBlocks(_, local))
       futSeqValidated.map { seqValidated =>
         val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }

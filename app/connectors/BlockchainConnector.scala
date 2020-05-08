@@ -9,7 +9,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.{ActorMaterializer, Materializer}
 import cats.data.Validated
 import cats.data.Validated.{Invalid, Valid}
-import connectors.BlockchainConnector.toEpochMilli
+import connectors.BlockchainConnector.{CutOffHours, CutOffMinutes, toEpochMilli}
 import model.json._
 import model.{BlockReaderError, _}
 import play.api.Logger
@@ -43,9 +43,14 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
 
   implicit val system: ActorSystem = ActorSystem("blockreader")
   //implicit val materializer: ActorMaterializer = ActorMaterializer()
-  val logger = Logger("blockreader")
+  val logger = Logger
 
-  def getLatestBlock: Future[Int] = btcConn.getLatestBlock
+  def getLatestBlock: Future[Int] = {
+    btcConn.getLatestBlock.map { latestBlock =>
+      logger.info(s"BlockchainConnector: latest block from BitcoinSConnector is $latestBlock")
+      latestBlock
+    }
+  }
 
   def getUsdPrice(implicit mat: Materializer): Future[BigDecimal] = {
     val request = httpClient.get(s"https://blockchain.info/ticker")
@@ -67,11 +72,13 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     getLatestBlock.flatMap { latestBlock =>
       val currentFeeResult = cache.get("feeresult").getOrElse(FeeResult.empty)
       if (currentFeeResult.topBlock == latestBlock && !currentFeeResult.emptyBlocksExist){
+        logger.info(s"BlockchainConnector: getBlocks returning nil as ${currentFeeResult.topBlock} == $latestBlock")
         Future.successful(Valid(JsonBlocks(Nil)))
       }
       else {
+        logger.info(s"BlockchainConnector: getting blocks")
         val momentNow = LocalDateTime.now
-        val cutOffTime = momentNow.minusHours(24).minusMinutes(5)
+        val cutOffTime = momentNow.minusHours(CutOffHours).minusMinutes(CutOffMinutes)
         val cutOffTimeEpoch = cutOffTime.atOffset(ZoneOffset.UTC).toEpochSecond
         val d1 = doGetBlocks(momentNow)
         //val d1 = doGetBlocks(LocalDateTime.now).map(_.map(b => b.copy(blocks = b.blocks.take(4))))
@@ -84,7 +91,10 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
         futValBlocks.map { valBlocks =>
           valBlocks.map { jsonBlocks =>
             val sortedBlocks = JsonBlocks(jsonBlocks.blocks.sortWith((a, b) => a.time >= b.time))
-            JsonBlocks(sortedBlocks.blocks.filter(_.time >= cutOffTimeEpoch))
+            logger.info(s"BlockchainConnector: getting blocks - blocks before cutoff filter ${sortedBlocks.blocks.size}")
+            val x = JsonBlocks(sortedBlocks.blocks.filter(_.time >= cutOffTimeEpoch))
+            logger.info(s"BlockchainConnector: getting blocks - blocks after cutoff filter ${x.blocks.size} momentNow=${momentNow.toEpochSecond(ZoneOffset.UTC)} cutOff=$cutOffTimeEpoch")
+            x
           }
         }
       }
@@ -96,16 +106,20 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     // dont need to convert block height to hashes as blockcypher has API based on height so we can skip this step
     // also, we can assume 24*6 blocks per day plus some extra, and then filter by time
     // we get latest height, go back 200 blocks, and then enrich only those which are within 24h
-    val futureResponse = httpClient.get(s"https://blockchain.info/blocks/${toEpochMilli(dateTime)}?format=json")
+    val url = s"https://blockchain.info/blocks/${toEpochMilli(dateTime)}?format=json"
+    logger.info(s"BlockchainConnector: doGetBlocks getting $url")
+    val futureResponse = httpClient.get(url)
     futureResponse.flatMap { response =>
       response.status match {
         case StatusCodes.OK =>
+          logger.info(s"BlockchainConnector: doGetBlocks status is 200")
           val jsonResult = Unmarshal(response.entity).to[String]
           jsonResult.map {string =>
             Json.parse(string)
               .validate[JsonBlocks]
               .fold(e => { Invalid[BlockReaderError](BlockReaderError(1, e.toString))},
                 jsonBlocks => {
+                  logger.info(s"BlockchainConnector: doGetBlocks obtained ${jsonBlocks.blocks.size} blocks")
                   Valid[JsonBlocks](jsonBlocks)
                 }
               )
@@ -171,4 +185,6 @@ object BlockchainConnector {
   def toEpochMilli(localDateTime: LocalDateTime) =
      localDateTime.atZone(ZoneId.systemDefault())
       .toInstant.toEpochMilli
+  val CutOffHours = 24
+  val CutOffMinutes = 5
 }
