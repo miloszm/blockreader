@@ -101,7 +101,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
             } yield {(height, b.tx.headOption.map(a => -a.fees).getOrElse(-1L))}).maxBy(a => a._1)
             logger.info("")
             logger.info("")
-            logger.info(s"reward for block $maxBlock is ${BigDecimal(maxBlockFee)./(BigDecimal(100000000))}")
+            logger.info(s"reward for block $maxBlock is ${(BigDecimal(maxBlockFee)./(BigDecimal(100000000))).setScale(8)} BTC")
             logger.info("")
             logger.info("")
             logger.info(s"BlocksController: adding FeeResult from ${all.size} transactions to cache ")
