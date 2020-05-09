@@ -96,15 +96,17 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
           }
           case l => {
             val all = l.flatMap(_.block.tx)
-            val (maxBlock, maxBlockFee) = (for {
+            val (maxBlock, maxBlockFee, sumFees) = (for {
               (b,height) <- l.map(a => (a.block, a.blockId.height))
-            } yield {(height, b.tx.headOption.map(a => -a.fees).getOrElse(-1L))}).maxBy(a => a._1)
+            } yield {(height, b.tx.headOption.map(a => -a.fees).getOrElse(-1L), b.sumFees)}).maxBy(a => a._1)
+            val pureReward = (BigDecimal(maxBlockFee - sumFees)/(BigDecimal(100000000))).setScale(8)
             logger.info("")
             logger.info("")
-            logger.info(s"reward for block $maxBlock is ${(BigDecimal(maxBlockFee)./(BigDecimal(100000000))).setScale(8)} BTC")
+            logger.info(s"reward for block $maxBlock: ${(BigDecimal(maxBlockFee)./(BigDecimal(100000000))).setScale(8)} BTC - created: $pureReward BTC")
             logger.info("")
             logger.info("")
             logger.info(s"BlocksController: adding FeeResult from ${all.size} transactions to cache ")
+            blockchainConnector.counter.set(0)
             cache.set("feeresult", FeeResult.fromTransactions(Transactions(all), l.exists(_.block.isEmpty), usdPrice, BigDecimal(maxBlockFee)))
 //            Ok(rich_blocks_template("", RichBlocks(l), counter))
           }
