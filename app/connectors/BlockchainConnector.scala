@@ -1,6 +1,7 @@
 package connectors
 
 import java.time.{LocalDate, LocalDateTime, ZoneId, ZoneOffset}
+import java.util.concurrent.atomic.AtomicLong
 
 import javax.inject.{Inject, Singleton}
 import akka.actor.ActorSystem
@@ -41,6 +42,8 @@ object Formats {
 case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpClient, btcConn: BitcoinSConnector, blockApi: BitcoinSBlockFutureApi) {
   import Formats._
 
+  val counter = new AtomicLong(0)
+
   implicit val system: ActorSystem = ActorSystem("blockreader")
   //implicit val materializer: ActorMaterializer = ActorMaterializer()
   val logger = Logger
@@ -72,7 +75,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     getLatestBlock.flatMap { latestBlock =>
       val currentFeeResult = cache.get("feeresult").getOrElse(FeeResult.empty)
       if (currentFeeResult.topBlock == latestBlock && !currentFeeResult.emptyBlocksExist){
-        logger.info(s"BlockchainConnector: getBlocks returning nil as ${currentFeeResult.topBlock} == $latestBlock")
+        logger.info(s"BlockchainConnector: getBlocks returning nil as ${currentFeeResult.topBlock} == $latestBlock - ${counter.getAndAdd(20)}")
         Future.successful(Valid(JsonBlocks(Nil)))
       }
       else {
