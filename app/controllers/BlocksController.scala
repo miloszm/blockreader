@@ -125,7 +125,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
   }
 
   private def produceRichBlockEntries(bl: JsonBlocks, local: Boolean)(implicit mat: Materializer): Future[Seq[Valid[RichBlock]]] = {
-    val source = Source.apply[JsonBlockEntry](bl.blocks.toList)
+    val source = Source.apply[JsonBlockEntry](bl.blocks.toList.sortWith((a,b) => a.time <= b.time))
       .throttle(10, FiniteDuration(1, TimeUnit.SECONDS), 10, ThrottleMode.Shaping)
 
     val richBlockEntrySource = source.mapAsync(parallelism = 3) { jsonBlockEntry =>

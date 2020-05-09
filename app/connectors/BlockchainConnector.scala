@@ -142,12 +142,12 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
 
   def getBlock(blockHash: String, blockHeight: Int, local: Boolean = false)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
     if (local)
-      doGetBlock2(blockHash, blockHeight)
+      doGetBlockLocal(blockHash, blockHeight)
     else
-      doGetBlock(blockHash, blockHeight)
+      doGetBlockRemote(blockHash, blockHeight)
   }
 
-  def doGetBlock(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def doGetBlockRemote(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
     val futureResponse = httpClient.get(s"https://blockchain.info/rawblock/$blockHash")
 
     futureResponse.flatMap { response =>
@@ -175,7 +175,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }
   }
 
-  def doGetBlock2(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
+  def doGetBlockLocal(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
     blockApi.getMhmBlockWithClient(btcConn.rpcCli, blockHash, blockHeight)
   }
 
