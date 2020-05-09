@@ -176,6 +176,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
   }
 
   def doGetBlockLocal(blockHash: String, blockHeight: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlock]] = {
+    logger.info(s"BlockchainConnector: getting locally block $blockHeight")
     blockApi.getMhmBlockWithClient(btcConn.rpcCli, blockHash, blockHeight)
   }
 

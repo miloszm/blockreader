@@ -18,6 +18,7 @@ import org.bitcoins.rpc.jsonmodels.GetRawTransactionVin
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import javax.inject.Singleton
+import play.api.Logger
 
 @Singleton
 class BitcoinSBlockFutureApi {
@@ -28,6 +29,7 @@ class BitcoinSBlockFutureApi {
   implicit val system = ActorSystem("blockreader")
   //implicit val materializer = ActorMaterializer()
 
+  val logger = Logger
 
 //  val username = "foo" //this username comes from 'rpcuser' in your bitcoin.conf file
 //  val password = "bar" //this password comes from your 'rpcpassword' in your bitcoin.conf file
@@ -80,7 +82,7 @@ class BitcoinSBlockFutureApi {
     val i = new AtomicLong(0L)
     val blockResponse = Await.result(blockFuture, 20 seconds)
 
-    println(s"Getting locally block: $blockHeight of size ${blockResponse.transactions.toList.size}")
+    logger.info(s"Getting locally ${blockResponse.transactions.toList.size} transactions for block $blockHeight")
     val transactionsSource = Source.apply[Transaction](blockResponse.transactions.toList)
       //.throttle(50, FiniteDuration(1, TimeUnit.SECONDS), 50, ThrottleMode.Shaping)
 
