@@ -18,7 +18,7 @@ import scala.util.{Failure, Success, Try}
 @Singleton
 class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycle, blocksController: BlocksController) {
 
-  val logger = Logger
+  val logger = Logger("will not show")
 
   class BlockPoller extends Actor {
     var local = false
@@ -55,8 +55,8 @@ class GlobalScheduler @Inject() (clock: Clock, appLifecycle: ApplicationLifecycl
     val fut = blockPoller ? "a"
     Await.result[Any](fut, Duration(30, duration.HOURS))
     logger.info("GlobalScheduler: received response from the poller actor")
-    logger.info("GlobalScheduler: scheduling poller asker in 30 seconds")
-    blocksController.system.scheduler.scheduleOnce(30.seconds)(askPollerAndWait)
+    logger.info("GlobalScheduler: scheduling poller asker in 20 seconds")
+    blocksController.system.scheduler.scheduleOnce(20.seconds)(askPollerAndWait)
   }
   // comment out to turn off
   logger.info("GlobalScheduler: initial scheduling of the poller asker in 5 seconds")

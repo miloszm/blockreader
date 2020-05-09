@@ -21,11 +21,12 @@ case class FeeResult
   feePer226BytesUsd: BigDecimal,
   feePerByteUsd: BigDecimal,
   emptyBlocksExist: Boolean,
-  usdPrice: BigDecimal
+  usdPrice: BigDecimal,
+  reward: BigDecimal = 0
 )
 
 object FeeResult {
-  def fromTransactions(all: Transactions, emptyExists: Boolean, usdPrice: BigDecimal) =
+  def fromTransactions(all: Transactions, emptyExists: Boolean, usdPrice: BigDecimal, reward: BigDecimal) =
     FeeResult(
       all.topBlock,
       all.bottomBlock,
@@ -44,7 +45,8 @@ object FeeResult {
       all.feeFor226InUsd(usdPrice),
       all.feeFor1InUsd(usdPrice),
       emptyExists,
-      usdPrice
+      usdPrice,
+      reward
     )
   def empty = FeeResult(0,0,0,0,0,0,0,0,0,0,0,Nil,0,0,0,0,true,0)
   def fake = FeeResult(

@@ -10,5 +10,5 @@ case class JsonBlocks(blocks: Seq[JsonBlockEntry]) {
 }
 
 object JsonBlocks extends Semigroup[JsonBlocks] {
-  override def combine(x: JsonBlocks, y: JsonBlocks) = JsonBlocks(x.blocks ++ y.blocks)
+  override def combine(x: JsonBlocks, y: JsonBlocks) = JsonBlocks((x.blocks.toSet ++ y.blocks.toSet).toSeq)
 }

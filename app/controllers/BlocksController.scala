@@ -77,7 +77,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
       futureValRichBlocks.onComplete{ _ match {
         case Success(result) => result match {
           case Valid(jsonBlocks) =>
-            logger.info(s"BlocksController: obtained ${jsonBlocks.blocks.size} blocks")
+            //logger.info(s"BlocksController: obtained ${jsonBlocks.blocks.size} blocks")
           case Invalid(y) =>
             logger.info(s"BlocksController: error when getting blocks: ${y.message}")
         }
@@ -90,12 +90,22 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
         val valid = seqValidated.collect { case Valid(richBlockEntry) => richBlockEntry }
         valid match {
           case Nil => {
+            //logger.info(s"BlocksController: adding empty FeeResult to cache")
             cache.set("feeresult", cache.get[FeeResult]("feeresult").getOrElse(FeeResult.empty).copy(usdPrice = usdPrice))
 //            Ok(rich_blocks_empty_template(""))
           }
           case l => {
             val all = l.flatMap(_.block.tx)
-            cache.set("feeresult", FeeResult.fromTransactions(Transactions(all), l.exists(_.block.isEmpty), usdPrice))
+            val (maxBlock, maxBlockFee) = (for {
+              (b,height) <- l.map(a => (a.block, a.blockId.height))
+            } yield {(height, b.tx.headOption.map(a => -a.fees).getOrElse(-1L))}).maxBy(a => a._1)
+            logger.info("")
+            logger.info("")
+            logger.info(s"reward for block $maxBlock is ${BigDecimal(maxBlockFee)./(BigDecimal(100000000))}")
+            logger.info("")
+            logger.info("")
+            logger.info(s"BlocksController: adding FeeResult from ${all.size} transactions to cache ")
+            cache.set("feeresult", FeeResult.fromTransactions(Transactions(all), l.exists(_.block.isEmpty), usdPrice, BigDecimal(maxBlockFee)))
 //            Ok(rich_blocks_template("", RichBlocks(l), counter))
           }
         }
@@ -140,7 +150,7 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
     val richBlockEntries: Future[Seq[Valid[RichBlock]]] =
       richBlockEntrySource.runWith(Sink.seq)
     if (bl.blocks.nonEmpty) {
-      logger.info(s"sequence of ${bl.blocks.size} block requests")
+      logger.info(s"sequence of ${bl.blocks.size} block requests: ${bl.blocks.map(_.height)}")
     }
     richBlockEntries
   }

@@ -47,7 +47,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
 
   def getLatestBlock: Future[Int] = {
     btcConn.getLatestBlock.map { latestBlock =>
-      logger.info(s"BlockchainConnector: latest block from BitcoinSConnector is $latestBlock")
+      //logger.info(s"BlockchainConnector: latest block from BitcoinSConnector is $latestBlock")
       latestBlock
     }
   }
@@ -81,9 +81,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
         val cutOffTime = momentNow.minusHours(CutOffHours).minusMinutes(CutOffMinutes)
         val cutOffTimeEpoch = cutOffTime.atOffset(ZoneOffset.UTC).toEpochSecond
         val d1 = doGetBlocks(momentNow)
-        //val d1 = doGetBlocks(LocalDateTime.now).map(_.map(b => b.copy(blocks = b.blocks.take(4))))
         val d2 = doGetBlocks(LocalDate.now.atStartOfDay().minusSeconds(2))
-        //val d2 = Future.successful(Valid(JsonBlocks(Nil)))
         val futValBlocks = for {
           v1 <- d1
           v2 <- d2
@@ -92,9 +90,9 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
           valBlocks.map { jsonBlocks =>
             val sortedBlocks = JsonBlocks(jsonBlocks.blocks.sortWith((a, b) => a.time >= b.time))
             logger.info(s"BlockchainConnector: getting blocks - blocks before cutoff filter ${sortedBlocks.blocks.size}")
-            val x = JsonBlocks(sortedBlocks.blocks.filter(_.time >= cutOffTimeEpoch))
-            logger.info(s"BlockchainConnector: getting blocks - blocks after cutoff filter ${x.blocks.size} momentNow=${momentNow.toEpochSecond(ZoneOffset.UTC)} cutOff=$cutOffTimeEpoch")
-            x
+            val filteredBlocks = JsonBlocks(sortedBlocks.blocks.filter(_.time >= cutOffTimeEpoch))
+            logger.info(s"BlockchainConnector: getting blocks - blocks after cutoff filter ${filteredBlocks.blocks.size} momentNow=${momentNow.toEpochSecond(ZoneOffset.UTC)} cutOff=$cutOffTimeEpoch")
+            filteredBlocks
           }
         }
       }
@@ -185,6 +183,6 @@ object BlockchainConnector {
   def toEpochMilli(localDateTime: LocalDateTime) =
      localDateTime.atZone(ZoneId.systemDefault())
       .toInstant.toEpochMilli
-  val CutOffHours = 24
-  val CutOffMinutes = 5
+  val CutOffHours = 1
+  val CutOffMinutes = 30
 }
