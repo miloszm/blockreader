@@ -71,8 +71,7 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
     }.map(x => x.map(_.`USD`.`15m`).map(_.setScale(2, RoundingMode.FLOOR)).getOrElse(0))
   }
 
-  def getBlocks(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlocks]] = {
-    getLatestBlock.flatMap { latestBlock =>
+  def getBlocks(latestBlock: Int)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlocks]] = {
       val currentFeeResult = cache.get("feeresult").getOrElse(FeeResult.empty)
       if (currentFeeResult.topBlock == latestBlock && !currentFeeResult.emptyBlocksExist){
         logger.info(s"BlockchainConnector: getBlocks returning nil as ${currentFeeResult.topBlock} == $latestBlock - ${counter.getAndAdd(20)}")
@@ -99,7 +98,6 @@ case class BlockchainConnector @Inject()(cache: SyncCacheApi, httpClient: HttpCl
           }
         }
       }
-    }
   }
 
   def doGetBlocks(dateTime:LocalDateTime)(implicit mat: Materializer): Future[Validated[BlockReaderError, JsonBlocks]] = {

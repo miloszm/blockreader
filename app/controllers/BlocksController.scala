@@ -19,10 +19,11 @@ import play.api.Logger
 import play.api.cache.SyncCacheApi
 import play.api.mvc._
 import views.html._
+import scala.concurrent.duration._
 
 import scala.collection.immutable.Seq
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 @Singleton
@@ -37,7 +38,8 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
   def counter = count.incrementAndGet()
 
   def blocks: Action[AnyContent] = Action.async {
-    val futureValBlocks = blockchainConnector.getBlocks
+    val latestBlock = Await.result(blockchainConnector.btcConn.getLatestBlock, 1 minute)
+    val futureValBlocks = blockchainConnector.getBlocks(latestBlock)
     futureValBlocks.map {
       case Valid(jsonBlocks) => Ok(blocks_template("", jsonBlocks.toBlockIds))
       case Invalid(error) => Ok(error.message)
@@ -72,8 +74,9 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
 
   def fetchBlocksUpdateFeeResultInCache(local: Boolean): Future[Unit/*Result*/] = {
     val futureUsdPrice = blockchainConnector.getUsdPrice
+    val latestBlock = Await.result(blockchainConnector.btcConn.getLatestBlock, 2 minutes)
     futureUsdPrice.flatMap { usdPrice => {
-      val futureValRichBlocks = blockchainConnector.getBlocks
+      val futureValRichBlocks = blockchainConnector.getBlocks(latestBlock)
       futureValRichBlocks.onComplete{ _ match {
         case Success(result) => result match {
           case Valid(jsonBlocks) =>
@@ -99,16 +102,16 @@ class BlocksController @Inject()(actorSystem: ActorSystem, cache: SyncCacheApi, 
             val (maxBlock, maxBlockFee, sumFees) = (for {
               (b,height) <- l.map(a => (a.block, a.blockId.height))
             } yield {(height, b.tx.headOption.map(a => -a.fees).getOrElse(-1L), b.sumFees)}).maxBy(a => a._1)
-            val pureReward = (BigDecimal(maxBlockFee - sumFees)/(BigDecimal(100000000))).setScale(8)
+            val pureReward = (BigDecimal(maxBlockFee - sumFees) / (BigDecimal(100000000))).setScale(8)
             logger.info("")
             logger.info("")
             logger.info(s"reward for block $maxBlock: ${(BigDecimal(maxBlockFee)./(BigDecimal(100000000))).setScale(8)} BTC - created: $pureReward BTC")
             logger.info("")
             logger.info("")
-            logger.info(s"BlocksController: adding FeeResult from ${all.size} transactions to cache ")
             blockchainConnector.counter.set(0)
+            logger.info(s"BlocksController: adding FeeResult from ${all.size} transactions to cache ")
             cache.set("feeresult", FeeResult.fromTransactions(Transactions(all), l.exists(_.block.isEmpty), usdPrice, BigDecimal(maxBlockFee)))
-//            Ok(rich_blocks_template("", RichBlocks(l), counter))
+            //            Ok(rich_blocks_template("", RichBlocks(l), counter))
           }
         }
       }
