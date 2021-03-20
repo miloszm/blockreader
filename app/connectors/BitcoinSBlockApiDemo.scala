@@ -2,9 +2,9 @@ package connectors
 
 import java.net.URI
 
-import org.bitcoins.core.crypto.{DoubleSha256Digest, DoubleSha256DigestBE, Sha256Hash160Digest}
+import org.bitcoins.crypto.{DoubleSha256DigestBE, Sha256Hash160Digest}
 import org.bitcoins.core.currency.Satoshis
-import org.bitcoins.rpc.jsonmodels.GetRawTransactionVin
+import org.bitcoins.commons.jsonmodels.bitcoind.GetRawTransactionVin
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._

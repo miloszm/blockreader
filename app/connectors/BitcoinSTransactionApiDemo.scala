@@ -3,7 +3,7 @@ package connectors
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.net.URI
 
-import org.bitcoins.core.crypto.{DoubleSha256Digest, DoubleSha256DigestBE, Sha256Hash160Digest}
+import org.bitcoins.crypto.{DoubleSha256Digest, DoubleSha256DigestBE, Sha256Hash160Digest}
 import org.bitcoins.core.protocol.{Address, BitcoinAddress, P2PKHAddress}
 import org.bitcoins.core.protocol.blockchain.Block
 import org.bitcoins.core.protocol.script.ScriptPubKey

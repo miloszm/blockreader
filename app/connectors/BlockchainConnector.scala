@@ -185,6 +185,6 @@ object BlockchainConnector {
   def toEpochMilli(localDateTime: LocalDateTime) =
      localDateTime.atZone(ZoneId.systemDefault())
       .toInstant.toEpochMilli
-  val CutOffHours = 1
+  val CutOffHours = 24
   val CutOffMinutes = 30
 }

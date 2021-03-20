@@ -3,9 +3,9 @@ package connectors
 import java.net.URI
 
 import javax.inject.Singleton
-import org.bitcoins.core.crypto.DoubleSha256Digest
+import org.bitcoins.crypto.DoubleSha256Digest
 import org.bitcoins.core.protocol.blockchain.Block
-import org.bitcoins.rpc.jsonmodels.GetBlockResult
+import org.bitcoins.commons.jsonmodels.bitcoind.GetBlockResult
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
